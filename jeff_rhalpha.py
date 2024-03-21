@@ -1,0 +1,1134 @@
+from __future__ import print_function, division
+import sys
+import os
+import rhalphalib as rl
+import numpy as np
+import scipy.stats
+import pickle
+import ROOT
+import json
+import pandas as pd
+import argparse
+import uproot
+from array import array
+from rhalphalib import AffineMorphTemplate, MorphHistW2
+import logging
+from rich.logging import RichHandler
+import click
+    
+
+rl.util.install_roofit_helpers()
+# rl.ParametericSample.PreferRooParametricHist = False
+np.random.seed(1)
+parser = argparse.ArgumentParser(description="Rhalphalib setup.")
+parser.add_argument(
+    "--opath", action="store", type=str, required=True, help="Path to store output."
+)
+parser.add_argument(
+    "--ipt", action="store", type=int, required=True, help="TF pt order."
+)
+parser.add_argument(
+    "--irho", action="store", type=int, required=True, help="TF rho order."
+)
+parser.add_argument(
+    "--iptMC", action="store", type=int, required=False, help="MCTF pt order."
+)
+parser.add_argument(
+    "--irhoMC", action="store", type=int, required=False, help="MCTF rho order."
+)
+parser.add_argument(
+    "--tagger",
+    action="store",
+    type=str,
+    required=True,
+    help="Tagger name to cut, for example pnmd2prong_ddt.",
+)
+parser.add_argument(
+    "--pickle",
+    action="store",
+    type=str,
+    required=False,
+    help="Path to pickle holding templates.",
+)
+parser.add_argument(
+    "--sigmass",
+    action="store",
+    type=str,
+    required=False,
+    default="150",
+    help="mass point like 150.",
+)
+# parser.add_argument("--root_path", action='store', type=str, required=True, help="Path to ROOT holding templates.")
+parser.add_argument(
+    "--root_file",
+    action="store",
+    type=str,
+    required=True,
+    help="Path to ROOT holding templates.",
+)
+parser.add_argument(
+    "--all_signals", action="store_true", help="Run on all signal templates."
+)
+parser.add_argument(
+    "--scale_qcd",
+    action="store_true",
+    help="Scale QCD MC so its poisson matches true uncs.",
+)
+parser.add_argument("--ftest", action="store_true", default=False, help="Run ftest.")
+parser.add_argument(
+    "--pseudo", action="store_true", default=False, help="Run pseudo data."
+)
+parser.add_argument("--MCTF", action="store_true", help="Prefit the TF params to MC.")
+parser.add_argument(
+    "--do_systematics", action="store_true", help="Include systematics."
+)
+parser.add_argument("--is_blinded", action="store_true", help="Run on 10pct dataset.")
+parser.add_argument("--throwPoisson", action="store_true", help="Throw poisson.")
+parser.add_argument(
+    "--four_pt_bins", action="store_true", help="Sum the last two pt bins."
+)
+parser.add_argument("--tworeg", action="store_true", help="Two regs.")
+parser.add_argument(
+    "--year",
+    action="store",
+    type=str,
+    help="Year to run on : one of 2016APV, 2016, 2017, 2018.",
+)
+parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
+parser.add_argument("--debug", "-vv", action="store_true", help="Debug logging")
+
+args = parser.parse_args()
+
+# Arg processing
+log_level = logging.WARNING
+if args.verbose:
+    log_level = logging.INFO
+if args.debug:
+    log_level = logging.DEBUG
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.basicConfig(
+    level=log_level,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(rich_tracebacks=True, tracebacks_suppress=[click])],
+)
+log = logging.getLogger("rich")
+
+
+tagger = args.tagger
+SF = {
+    "2017": {
+        "V_SF": 0.896,
+        "V_SF_ERR": 0.065,
+        "SHIFT_SF": 0.99,
+        "SHIFT_SF_ERR": 0.004,
+    }
+}
+
+lumi_dict = {"2017": 41100}
+
+lumi_dict_unc = {
+    "2016": 1.01,
+    "2017": 1.02,
+    "2018": 1.015,
+}
+lumi_correlated_dict_unc = {
+    "2016": 1.006,
+    "2017": 1.009,
+    "2018": 1.02,
+}
+lumi_1718_dict_unc = {
+    "2017": 1.006,
+    "2018": 1.002,
+}
+
+
+def smass(sName):
+    if "hbb" in sName:
+        _mass = 125.0
+    elif sName in [
+        "wqq",
+        "tt",
+        "st",
+    ]:
+        _mass = 80.0
+    elif sName in ["zqq", "zcc", "zbb"]:
+        _mass = 90.0
+    else:
+        raise ValueError("DAFUQ is {}".format(sName))
+    return _mass
+
+
+with open("xsec.json") as f:
+    xsec_dict = json.load(f)
+
+short_to_long = {
+    "wqq": "WJetsToQQ",
+    "zqq": "ZJetsToQQ",
+    "tt": "TTbar",
+    "st": "SingleTop",
+    "wlnu": "WJetsToLNu",
+    # "m50": "VectorZPrimeToQQ_M50",
+    # "m75": "VectorZPrimeToQQ_M75",
+    # "m100": "VectorZPrimeToQQ_M100",
+    # "m125": "VectorZPrimeToQQ_M125",
+    # "m150": "VectorZPrimeToQQ_M150",
+    # "m200": "VectorZPrimeToQQ_M200",
+    # "m250": "VectorZPrimeToQQ_M250",
+    "m50": "zpqq50",
+    "m75": "zpqq75",
+    "m100": "zpqq100",
+    "m125": "zpqq125",
+    "m150": "zpqq150",
+    "m200": "zpqq200",
+    "m250": "zpqq250",
+    "b50": "zpbb50",
+    "b75": "zpbb75",
+    "b100": "zpbb100",
+    "b125": "zpbb125",
+    "b150": "zpbb150",
+    "b200": "zpbb200",
+    "b250": "zpbb250",
+    # "m300" : "VectorZPrimeToQQ_M300",
+}
+
+sys_types = {
+    "JES": "lnN",
+    "JER": "lnN",
+    "UES": "lnN",
+    "jet_trigger": "lnN",
+    "btagEffStat": "lnN",
+    "btagWeight": "lnN",
+    "pileup_weight": "lnN",
+    "Z_d2kappa_EW": "lnN",
+    "Z_d3kappa_EW": "lnN",
+    "d1kappa_EW": "lnN",
+    "d1K_NLO": "lnN",
+    "d2K_NLO": "lnN",
+    "d3K_NLO": "lnN",
+    "L1Prefiring": "lnN",
+    "scalevar_7pt": "lnN",
+    "scalevar_3pt": "lnN",
+    "mu_trigger": "lnN",
+    "mu_isoweight": "lnN",
+    "mu_idweight": "lnN",
+    "HEM18": "lnN",
+}
+
+
+sample_maps = {
+    "QCD": [
+        "QCD_HT500to700",
+        "QCD_HT700to1000",
+        "QCD_HT1000to1500",
+        "QCD_HT1500to2000",
+        "QCD_HT2000toInf",
+    ],
+    "wqq": ["WJetsToQQ_HT-600to800", "WJetsToQQ_HT-800toInf"],
+    "zqq": ["ZJetsToQQ_HT-600to800", "ZJetsToQQ_HT-800toInf"],
+    "tt": ["TTTo2L2Nu", "TTToHadronic", "TTToSemiLeptonic"],
+    "dy": [
+        "DYJetsToLL_Pt-200To400",
+        "DYJetsToLL_Pt-400To600",
+        "DYJetsToLL_Pt-600To800",
+        "DYJetsToLL_Pt-800To1200",
+        "DYJetsToLL_Pt-1200To2500",
+    ],
+    "st": [
+        "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8",
+        "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8",
+        "ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8",
+        "ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8",
+    ],
+    "hbb": ["GluGluHToBB"],
+    "wlnu": [
+        "WJetsToLNu_HT200to400",
+        "WJetsToLNu_HT400to600",
+        "WJetsToLNu_HT600to800",
+        "WJetsToLNu_HT800to1200",
+        "WJetsToLNu_HT1200to2500",
+        "WJetsToLNu_HT2500toInf",
+    ],
+    "JetHT_2017": [
+        "JetHT_Run2017B",
+        "JetHT_Run2017C",
+        "JetHT_Run2017D",
+        "JetHT_Run2017E",
+        "JetHT_Run2017F",
+    ],
+    "VectorZPrimeToQQ_M50": ["VectorZPrimeToQQ_M50"],
+    "VectorZPrimeToQQ_M75": ["VectorZPrimeToQQ_M75"],
+    "VectorZPrimeToQQ_M100": ["VectorZPrimeToQQ_M100"],
+    "VectorZPrimeToQQ_M125": ["VectorZPrimeToQQ_M125"],
+    "VectorZPrimeToQQ_M150": ["VectorZPrimeToQQ_M150"],
+    "VectorZPrimeToQQ_M200": ["VectorZPrimeToQQ_M200"],
+    "VectorZPrimeToQQ_M250": ["VectorZPrimeToQQ_M250"],
+    # "VectorZPrimeToQQ_M300" : ["VectorZPrimeToQQ_M300"],
+}
+
+if args.all_signals:
+    signals = [
+        "m50",
+        "m75",
+        "m100",
+        "m125",
+        "m150",
+        "m200",
+        "m250",
+    ]
+else:
+    signals = ["m" + args.sigmass]
+
+poly_order = (args.ipt, args.irho)
+
+
+def expo_sample(norm, scale, obs):
+    cdf = scipy.stats.expon.cdf(scale=scale, x=obs.binning) * norm
+    return (np.diff(cdf), obs.binning, obs.name)
+
+
+def gaus_sample(norm, loc, scale, obs):
+    cdf = scipy.stats.norm.cdf(loc=loc, scale=scale, x=obs.binning) * norm
+    return (np.diff(cdf), obs.binning, obs.name)
+
+
+def plot_mctf(tf_MCtempl, msdbins, name):
+    """
+    Plot the MC pass / fail TF as function of (pt,rho) and (pt,msd)
+    """
+    import matplotlib.pyplot as plt
+
+    # arrays for plotting pt vs msd
+    pts = np.linspace(525, 1200, 10)
+    ptpts, msdpts = np.meshgrid(
+        pts[:-1] + 0.5 * np.diff(pts),
+        msdbins[:-1] + 0.5 * np.diff(msdbins),
+        indexing="ij",
+    )
+    ptpts_scaled = (ptpts - 525.0) / (1200.0 - 525.0)
+    rhopts = 2 * np.log(msdpts / ptpts)
+
+    rhopts_scaled = (rhopts - (-5.5)) / ((-2.0) - (-5.5))
+    validbins = (rhopts_scaled >= 0) & (rhopts_scaled <= 1)
+
+    ptpts = ptpts[validbins]
+    msdpts = msdpts[validbins]
+    ptpts_scaled = ptpts_scaled[validbins]
+    rhopts_scaled = rhopts_scaled[validbins]
+
+    tf_MCtempl_vals = tf_MCtempl(ptpts_scaled, rhopts_scaled, nominal=True)
+    # print(tf_MCtempl_vals)
+    df = pd.DataFrame([])
+    df["msd"] = msdpts.reshape(-1)
+    df["pt"] = ptpts.reshape(-1)
+    df["MCTF"] = tf_MCtempl_vals.reshape(-1)
+    # print(df['MCTF'])
+    fig, ax = plt.subplots()
+    h = ax.hist2d(x=df["msd"], y=df["pt"], weights=df["MCTF"], bins=(msdbins, pts))
+    plt.xlabel("$m_{sd}$ [GeV]")
+    plt.ylabel("$p_{T}$ [GeV]")
+    cb = fig.colorbar(h[3], ax=ax)
+    cb.set_label("Ratio")
+    fig.savefig(f"{opath}/MCTF_msdpt_" + name + ".png")
+    fig.savefig(f"{opath}/MCTF_msdpt_" + name + ".pdf")
+    plt.clf()
+
+    # arrays for plotting pt vs rho
+    rhos = np.linspace(-5.5, -2.0, 300)
+    ptpts, rhopts = np.meshgrid(
+        pts[:-1] + 0.5 * np.diff(pts), rhos[:-1] + 0.5 * np.diff(rhos), indexing="ij"
+    )
+    ptpts_scaled = (ptpts - 525.0) / (1500.0 - 525.0)
+    rhopts_scaled = (rhopts - (-5.5)) / ((-2.0) - (-5.5))
+    validbins = (rhopts_scaled >= 0) & (rhopts_scaled <= 1)
+
+    ptpts = ptpts[validbins]
+    rhopts = rhopts[validbins]
+    ptpts_scaled = ptpts_scaled[validbins]
+    rhopts_scaled = rhopts_scaled[validbins]
+
+    tf_MCtempl_vals = tf_MCtempl(ptpts_scaled, rhopts_scaled, nominal=True)
+
+    df = pd.DataFrame([])
+    df["rho"] = rhopts.reshape(-1)
+    df["pt"] = ptpts.reshape(-1)
+    df["MCTF"] = tf_MCtempl_vals.reshape(-1)
+
+    fig, ax = plt.subplots()
+    h = ax.hist2d(x=df["rho"], y=df["pt"], weights=df["MCTF"], bins=(rhos, pts))
+    plt.xlabel("rho")
+    plt.ylabel("$p_{T}$ [GeV]")
+    cb = fig.colorbar(h[3], ax=ax)
+    cb.set_label("Ratio")
+    fig.savefig(
+        f"{opath}/MCTF_rhopt_" + name + ".png",
+    )
+    fig.savefig(
+        f"{opath}/MCTF_rhopt_" + name + ".pdf",
+    )
+
+    return
+
+
+def get_templ(
+    region,
+    sample,
+    ptbin,
+    tagger,
+    syst=None,
+    muon=False,
+    nowarn=False,
+    year="2017",
+    scaledown=False,
+    fourptbins=False,
+):
+    hist_str = f"SR_{sample}_ptbin{ptbin}_{tagger}_{region}"
+    if syst is not None:
+        hist_str = hist_str + "__" + syst
+    # print(hist_str)
+    with uproot.open(args.root_file) as f:
+        # print(f.keys())
+        hist = f[hist_str]
+    hist_values = hist.values()
+    hist_variances = hist.variances()
+    hist_edges = hist.axis().edges()
+    if scaledown:
+        hist_values *= 1e-2
+
+    if fourptbins and ptbin == 3:
+        with uproot.open(args.root_file) as f:
+            # print(f.keys())
+            hist = f[hist_str.replace("ptbin3", "ptbin4")]
+        hist_values += hist.values()
+        hist_variances += hist.variances()
+
+    return (hist_values, hist_edges, "msd", hist_variances)
+
+
+def th1_to_numpy(path, label="msd"):
+    with uproot.open(path) as file:
+        th1d = file[label]
+        _hist, _ = th1d.to_numpy()
+    return _hist
+
+
+def shape_to_num(
+    region, sName, ptbin, syst_down_up, mask, muon=False, bound=0.5, inflate=False
+):
+    # print(sName)
+
+    _nom = get_templ(region, sName, ptbin, tagger)
+    # _nom = th1_to_numpy(path)
+
+    # if template is very small don't add unc
+    if _nom[0] is None:
+        return None
+    _nom_rate = np.sum(_nom[0] * mask)
+    if _nom_rate < 0.1:
+        return 1.0
+    # ignore one sided for now
+    _one_side = (
+        None  # get_templ(f, region, sName, ptbin, syst=syst, muon=muon, nowarn=True)
+    )
+    _up = get_templ(
+        region, sName, ptbin, tagger, syst=syst_down_up[1], muon=muon, nowarn=True
+    )
+
+    # _up = th1_to_numpy(path)
+
+    _down = get_templ(
+        region, sName, ptbin, tagger, syst=syst_down_up[0], muon=muon, nowarn=True
+    )
+    # _down = th1_to_numpy(path)
+    if _up is None and _down is None and _one_side is None:
+        return None
+    else:
+        if _one_side is not None:
+            _up_rate = np.sum(_one_side[0] * mask)
+            _diff = np.abs(_up_rate - _nom_rate)
+            magnitude = _diff / _nom_rate
+        elif _down[0] is not None and _up[0] is not None:
+            _up_rate = np.sum(_up[0] * mask)
+            _down_rate = np.sum(_down[0] * mask)
+            # print("_up_rate",_up_rate)
+            # print("_down_rate",_down_rate)
+            _diff = np.abs(_up_rate - _nom_rate) + np.abs(_down_rate - _nom_rate)
+            magnitude = _diff / (2.0 * _nom_rate)
+        else:
+            raise NotImplementedError
+    if bound is not None:
+        magnitude = min(magnitude, bound)
+    # inflate uncs while debugging what went wrong
+    if inflate:
+        magnitude *= 10
+    # print(magnitude)
+    return 1.0 + magnitude
+
+
+def test_rhalphabet(tmpdir, sig, throwPoisson=False):
+    jec = rl.NuisanceParameter("CMS_jec", "lnN")
+    sys_shape_dict = {}
+    sys_shape_dict["JES"] = rl.NuisanceParameter(
+        "CMS_scale_j_{}".format(args.year), sys_types["JES"]
+    )
+    sys_shape_dict["JER"] = rl.NuisanceParameter(
+        "CMS_res_j_{}".format(args.year), sys_types["JER"]
+    )
+    # don't have UES for now
+    sys_shape_dict["UES"] = rl.NuisanceParameter(
+        "CMS_ues_j_{}".format(args.year), sys_types["UES"]
+    )
+    sys_shape_dict["jet_trigger"] = rl.NuisanceParameter(
+        "CMS_trigger_{}".format(args.year), sys_types["jet_trigger"]
+    )
+    sys_shape_dict["L1Prefiring"] = rl.NuisanceParameter(
+        "CMS_L1prefire_{}".format(args.year), sys_types["L1Prefiring"]
+    )
+
+    sys_shape_dict["pileup_weight"] = rl.NuisanceParameter(
+        "CMS_PU_{}".format(args.year), sys_types["pileup_weight"]
+    )
+    # don't have HEM for now
+    sys_shape_dict["HEM18"] = rl.NuisanceParameter(
+        "CMS_HEM_{}".format(args.year), sys_types["HEM18"]
+    )
+    # don't have mu for now
+    sys_shape_dict["mu_trigger"] = rl.NuisanceParameter(
+        "CMS_mu_trigger_{}".format(args.year), sys_types["mu_trigger"]
+    )
+    sys_shape_dict["mu_isoweight"] = rl.NuisanceParameter(
+        "CMS_mu_isoweight_{}".format(args.year), sys_types["mu_isoweight"]
+    )
+    sys_shape_dict["mu_idweight"] = rl.NuisanceParameter(
+        "CMS_mu_idweight_{}".format(args.year), sys_types["mu_idweight"]
+    )
+    # sys_shape_dict['scalevar_7pt'] = rl.NuisanceParameter('CMS_th_scale7pt', sys_types['scalevar_7pt'])
+    # sys_shape_dict['scalevar_3pt'] = rl.NuisanceParameter('CMS_th_scale3pt', sys_types['scalevar_3pt'])
+
+    sys_eleveto = rl.NuisanceParameter("CMS_e_veto_{}".format(args.year), "lnN")
+    sys_muveto = rl.NuisanceParameter("CMS_m_veto_{}".format(args.year), "lnN")
+    sys_tauveto = rl.NuisanceParameter("CMS_tau_veto_{}".format(args.year), "lnN")
+
+    sys_veff = rl.NuisanceParameter("CMS_veff_{}".format(args.year), "lnN")
+
+    sys_lumi = rl.NuisanceParameter("CMS_lumi", "lnN")
+    sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
+    sys_lumi_1718 = rl.NuisanceParameter("CMS_lumi_13TeV_1718", "lnN")
+
+    tqqeffSF = rl.IndependentParameter("tqqeffSF", 1.0, 0, 10)
+    tqqnormSF = rl.IndependentParameter("tqqnormSF", 1.0, 0, 10)
+    # with open(args.pickle, "rb") as f:
+    #    df = pickle.load(f)
+    ptbins = np.array([525, 575, 625, 700, 800, 1200])
+    if args.four_pt_bins:
+        ptbins = np.array([525, 575, 625, 700, 1200])
+    npt = len(ptbins) - 1
+    msdbins = np.linspace(40, 350, 63)
+    msd = rl.Observable("msd", msdbins)
+
+    # here we derive these all at once with 2D array
+    ptpts, msdpts = np.meshgrid(
+        ptbins[:-1] + 0.3 * np.diff(ptbins),
+        msdbins[:-1] + 0.5 * np.diff(msdbins),
+        indexing="ij",
+    )
+    rhopts = 2 * np.log(msdpts / ptpts)
+    ptscaled = (ptpts - 525.0) / (1200.0 - 525.0)
+    rhoscaled = (rhopts - (-5.5)) / ((-2.0) - (-5.5))
+    validbins = (rhoscaled >= 0.0) & (rhoscaled <= 1.0)
+    rhoscaled[~validbins] = 1  # we will mask these out later
+
+    ####################################################
+    # MCTF Setups
+    if args.tworeg:
+        # pass,fail,pass_highbvl,pass_lowbvl
+        qcdmodels = [rl.Model("qcdmodel0"), rl.Model("qcdmodel1")]
+        qcd_counts_pass = [0.0, 0.0]
+        qcd_counts_fail = [0.0, 0.0]
+        pass_regs = ["pass_highbvl", "pass_lowbvl"]
+        fail_regs = ["fail", "fail"]
+    else:
+        qcdmodels = [rl.Model("qcdmodel")]
+        qcd_counts_pass = [0.0]
+        qcd_counts_fail = [0.0]
+        pass_regs = ["pass"]
+        fail_regs = ["fail"]
+
+    qcdeffs = [] 
+    for qcdmodel, qcdpass, qcdfail, rpass, rfail in zip(
+        qcdmodels, qcd_counts_pass, qcd_counts_fail, pass_regs, fail_regs
+    ):
+        for ptbin in range(npt):
+            failCh = rl.Channel("ptbin%d%s" % (ptbin, "fail"))
+            passCh = rl.Channel("ptbin%d%s" % (ptbin, "pass"))
+            failTempl = get_templ(
+                rfail, "QCD", ptbin, tagger, fourptbins=args.four_pt_bins
+            )
+            passTempl = get_templ(
+                rpass, "QCD", ptbin, tagger, fourptbins=args.four_pt_bins
+            )
+            failCh.setObservation(failTempl, read_sumw2=True)
+            passCh.setObservation(passTempl, read_sumw2=True)
+            qcdfail += failCh.getObservation()[0].sum()
+            qcdpass += passCh.getObservation()[0].sum()
+            if args.MCTF:
+                qcdmodel.addChannel(failCh)
+                qcdmodel.addChannel(passCh)
+        qcdeffs.append(qcdpass / qcdfail)
+           
+
+    if args.MCTF:
+        tf_MCtempls = []
+        tf_MCtempl_params = []
+        for i, qcdmodel in enumerate(qcdmodels):
+            degsMC = tuple([int(s) for s in [args.iptMC, args.irhoMC]])
+            _initsMC = np.ones(tuple(n + 1 for n in degsMC))
+            log.debug(f"Initializing MCTF `{qcdmodel.name}` with n_pt={args.iptMC} and n_rho={args.irhoMC}")
+            log.debug(_initsMC)
+            tf_MCtempl = rl.BasisPoly(
+                f"tf{args.year}_MC_{i}templ",
+                degsMC,
+                ["pt", "rho"],
+                basis="Bernstein",
+                init_params=_initsMC,
+                limits=(-50, 50),
+                coefficient_transform=None,
+            )
+            tf_MCtempls.append(tf_MCtempl)
+            tf_MCtempl_params.append(qcdeffs[i] * tf_MCtempl(ptscaled, rhoscaled))
+            for ptbin in range(npt):
+                failCh = qcdmodel[f"ptbin{ptbin}fail"]
+                passCh = qcdmodel[f"ptbin{ptbin}pass"]
+                failObs = failCh.getObservation()[0]
+                qcdparams = np.array(
+                    [
+                        rl.IndependentParameter(f"qcdparam{i}_ptbin{ptbin}_msdbin{mbin}", 0)
+                        for mbin in range(msd.nbins)
+                    ]
+                )
+                sigmascale = 10.0
+                scaledparams = (
+                    failObs
+                    * (1 + sigmascale / np.maximum(1.0, np.sqrt(failObs))) ** qcdparams
+                )
+                fail_qcd = rl.ParametericSample(
+                    f"ptbin{ptbin}fail_qcd", rl.Sample.BACKGROUND, msd, scaledparams
+                )
+                failCh.addSample(fail_qcd)
+                pass_qcd = rl.TransferFactorSample(
+                    f"ptbin{ptbin}pass_qcd",
+                    rl.Sample.BACKGROUND,
+                    tf_MCtempl_params[i][ptbin, :],
+                    fail_qcd,
+                )
+                passCh.addSample(pass_qcd)
+                failCh.mask = validbins[ptbin]
+                passCh.mask = validbins[ptbin]
+        
+        # Run fits
+        MCTFs = []
+        log.info("Fitting MCTFs")
+        for i, (qcdmodel, tf_MCtempl, tf_MCtempl_param) in enumerate(zip(qcdmodels, tf_MCtempls, tf_MCtempl_params)):  
+            qcdfit_ws = ROOT.RooWorkspace("qcdfit_ws")
+            simpdf, obs = qcdmodel.renderRoofit(qcdfit_ws)
+            qcdfit = simpdf.fitTo(
+                obs,
+                ROOT.RooFit.Extended(True),
+                ROOT.RooFit.Offset(True),  # Gets rid of negative value warnings
+                ROOT.RooFit.SumW2Error(True),
+                ROOT.RooFit.Strategy(2),
+                ROOT.RooFit.Save(),
+                ROOT.RooFit.Minimizer("Minuit2", "migrad"),
+                ROOT.RooFit.Verbose(0),
+                ROOT.RooFit.PrintLevel(-1),
+            )
+            qcdfit_ws.add(qcdfit)
+            MCTFs.append(qcdfit)
+            
+            # Set parameters to fitted values
+            allparams = dict(zip(qcdfit.nameArray(), qcdfit.valueArray()))
+            pvalues = []
+            for i, p in enumerate(tf_MCtempl.parameters.reshape(-1)):
+                p.value = allparams[p.name]
+            pvalues += [p.value]
+            
+        # Show res
+        for model, fit_result, tf_MCtempl in zip(qcdmodels, MCTFs, tf_MCtempls):
+            if not (fit_result.status() == 0 or qcdfit.status() == 1):
+                raise RuntimeError("Could not fit qcd")
+            log.info(f"MCTF - {model.name} fit status: {fit_result.status()}")
+            _values = [par.value for par in tf_MCtempl.parameters.flatten()]
+            _names = [par.name for par in tf_MCtempl.parameters.flatten()]
+            for name, value in zip(_names, _values):
+                log.debug(f"{name} = {value:.3f}")
+                
+            if "pytest" not in sys.modules:  #idk
+                qcdfit_ws.writeToFile(os.path.join(str(tmpdir), f"testModel_{model.name}.root"))
+
+
+        # plot_mctf(tf_MCtempl, msdbins, "all")
+        # Decorrelate
+        all_tf_MCtempl_params_final = []
+        for model, fit_result, tf_MCtempl in zip(qcdmodels, MCTFs, tf_MCtempls):
+            param_names = [p.name for p in tf_MCtempl.parameters.reshape(-1)]
+            decoVector = rl.DecorrelatedNuisanceVector.fromRooFitResult(
+                tf_MCtempl.name + "_deco", fit_result, param_names
+            )
+            tf_MCtempl.parameters = decoVector.correlated_params.reshape(
+                tf_MCtempl.parameters.shape
+            )
+            tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
+            all_tf_MCtempl_params_final.append(tf_MCtempl_params_final)
+    
+    #####################################
+    # Data TF
+    all_tf_params = []
+    nTFs = 2 if args.tworeg else 1
+    for i in range(nTFs):
+        degs = tuple([int(s) for s in [args.ipt, args.irho]])
+        _inits = np.ones(tuple(n + 1 for n in degs))
+        log.debug(f"Initializing TF {i} (data) with n_pt={args.ipt} and n_rho={args.irho}")
+        log.debug(_inits)
+        tf_dataResidual = rl.BasisPoly(
+            f"tf{args.year}_dataResidual_{i}",
+            degs,
+            ["pt", "rho"],
+            basis="Bernstein",
+            init_params=_inits,
+            limits=(-50, 50),
+            coefficient_transform=None,
+        )
+        # tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", poly_order, ["pt", "rho"], init_params=_inits, limits=(0, 10))
+        tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
+
+        if args.MCTF:
+            tf_params = qcdeffs[i] * all_tf_MCtempl_params_final[i] * tf_dataResidual_params
+        else:
+            tf_params = qcdeffs[i] * tf_dataResidual_params
+        all_tf_params.append(tf_params)
+        
+    ##############################
+    # Build main model
+    log.info("Building main model")   
+    model = rl.Model(f"{sig}_model")
+    siggy = sig
+    bsiggy = sig.replace("m", "b")
+    log.info(f"Signals: {siggy}, {bsiggy}")
+    model.t2w_config = ("-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose "
+                        f"--PO 'map=.*/*{siggy}*:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}*:r_b[1,-5,5]'"
+                        )
+
+    scale_pass = []
+    for ptbin in range(npt):
+        # for region in ["pass", "fail"]:
+        for region in list(set(pass_regs+fail_regs)):
+            model_reg_name = region.replace("_", "")         
+            ch = rl.Channel(f"ptbin{ptbin}{model_reg_name}")
+            log.debug(f"Initializing model region: ptbin{ptbin}{model_reg_name}")   
+            model.addChannel(ch)
+
+            # Fetch templates
+            templates = {
+                "wqq": get_templ(
+                    region, "wqq", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "zqq": get_templ(
+                    region,
+                    "zqq",
+                    ptbin,
+                    tagger,
+                    fourptbins=args.four_pt_bins,
+                    scaledown=True if args.pseudo else False,
+                ),
+                "zbb": get_templ(
+                    region,
+                    "zbb",
+                    ptbin,
+                    tagger,
+                    fourptbins=args.four_pt_bins,
+                    scaledown=True if args.pseudo else False,
+                ),
+                "tt": get_templ(
+                    region, "tt", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "wlnu": get_templ(
+                    region, "wlnu", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "dy": get_templ(
+                    region, "dy", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "st": get_templ(
+                    region, "st", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "hbb": get_templ(
+                    region, "hbb", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+                "qcd": get_templ(
+                    region, "QCD", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
+            }
+
+            if not args.ftest:
+                templates[siggy] = get_templ(
+                    region,
+                    short_to_long[siggy],
+                    ptbin,
+                    tagger,
+                    fourptbins=args.four_pt_bins,
+                )
+                templates[bsiggy] = get_templ(
+                    region,
+                    short_to_long[bsiggy],
+                    ptbin,
+                    tagger,
+                    fourptbins=args.four_pt_bins,
+                )
+            mask = validbins[ptbin].copy()
+
+            if args.ftest:
+                include_samples = ["zqq"]  # qcd here?
+            else:
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
+
+            for sName in include_samples:
+                # some mock expectations
+                templ = templates[sName]
+                logging.debug(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
+
+                if args.ftest:
+                    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
+                    # templ[0] = templ[0]*1e-4 #Scale down signal?
+                else:
+                    stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy] else rl.Sample.BACKGROUND
+                sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
+
+                def smorph(templ, sName):
+                    if templ is None:
+                        return None
+                    if sName not in ["qcd", "dy", "wlnu", "tt", "st"]:
+                        return MorphHistW2(templ).get(
+                            shift=SF[args.year]["shift_SF"] * smass(sName),
+                            # smear=SF[year]['smear_SF']
+                        )
+                    else:
+                        return templ
+
+                ##https://github.com/nsmith-/rhalphalib/blob/master/rhalphalib/template_morph.py#L45-L58 how do i do this on ROOT templates?
+                if args.do_systematics:
+                    sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
+                    sample.setParamEffect(
+                        sys_lumi_correlated, lumi_correlated_dict_unc[args.year]
+                    )
+                    if args.year != "2016":
+                        sample.setParamEffect(
+                            sys_lumi_1718, lumi_1718_dict_unc[args.year]
+                        )
+                    sample.setParamEffect(sys_eleveto, 1.005)
+                    sample.setParamEffect(sys_muveto, 1.005)
+                    sample.setParamEffect(sys_tauveto, 1.005)
+
+                    sample.autoMCStats(lnN=True)
+
+                    sys_names = [
+                        "JES",
+                        "JER",
+                        "jet_trigger",
+                        "pileup_weight",
+                        "L1Prefiring",
+                        #'Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+                        #'scalevar_7pt', 'scalevar_3pt',
+                        #'UES','btagEffStat', 'btagWeight',
+                    ]
+                    sys_name_updown = {
+                        "JES": ["jesTotaldown", "jesTotalup"],
+                        "JER": ["jerdown", "jerup"],
+                        "pileup_weight": ["pudown", "puup"],
+                        "jet_trigger": ["stat_dn", "stat_up"],
+                        "L1Prefiring": ["L1PreFiringup", "L1PreFiringdown"],
+                    }
+                    if stype == rl.Sample.SIGNAL and not args.ftest:
+                        sName = short_to_long[sName]
+                    for sys_name in sys_names:
+                        if (
+                            ("NLO" in sys_name) or ("EW" in sys_name)
+                        ) and not sName in ["zqq", "wqq"]:
+                            continue
+                        if ("Z_d" in sys_name) and sName not in ["zqq"]:
+                            continue
+                        if sys_shape_dict[sys_name].combinePrior == "lnN":
+                            _sys_ef = shape_to_num(
+                                region,
+                                sName,
+                                ptbin,
+                                sys_name_updown[sys_name],
+                                mask,
+                                bound=None if "scalevar" not in sys_name else 0.25,
+                                inflate=True,
+                            )
+                            if _sys_ef is None:
+                                continue
+                            sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
+
+                    if sName not in [
+                        "qcd",
+                        "dy",
+                        "wlnu",
+                        "tt",
+                        "st",
+                    ]:
+                        sample.scale(SF[args.year]["V_SF"])
+                        sample.setParamEffect(
+                            sys_veff,
+                            1.0 + SF[args.year]["V_SF_ERR"] / SF[args.year]["V_SF"],
+                        )
+                    ###SFs complicated by high-purity bb region...fully insitu using Zbb?
+
+                else:
+                    sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
+
+                ch.addSample(sample)
+
+            if not args.pseudo:
+                data_obs = get_templ(
+                    region, f"JetHT_2017", ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                if throwPoisson:
+                    yields = np.random.poisson(yields)
+            else:
+                yields = []
+
+                for sName in ["QCD"]:
+                    _sample = get_templ(
+                        region, sName, ptbin, tagger, fourptbins=args.four_pt_bins
+                    )
+                    _sample_yield = _sample[0]
+                    if args.scale_qcd:
+                        if region == "pass":
+                            dummyqcd = rl.TemplateSample(
+                                "dummyqcd", rl.Sample.BACKGROUND, _sample
+                            )
+                            nomrate = dummyqcd._nominal
+                            downrate = np.sum(
+                                np.nan_to_num(
+                                    dummyqcd._nominal - np.sqrt(dummyqcd._sumw2), 0.0
+                                )
+                            )
+                            uprate = np.sum(
+                                np.nan_to_num(
+                                    dummyqcd._nominal + np.sqrt(dummyqcd._sumw2), 0.0
+                                )
+                            )
+                            diff = np.sum(
+                                np.abs(uprate - nomrate) + np.abs(downrate - nomrate)
+                            )
+                            mean = diff / (2.0 * np.sum(nomrate))
+                            # sqrt(nom*N) = mean -> N = mean**2/nom
+                            scale = mean**2 / np.sum(nomrate)
+                            scale = 5  # 1./np.sqrt(scale)
+                            scale_pass.append(scale)
+                            print(
+                                "qcdscale needed to match mcstat uncs: using poisson:",
+                                scale,
+                            )
+                            # _sample_yield = _sample_yield.copy()*1./scale
+                        elif region == "fail":
+                            scale = scale_pass[ptbin]
+                        yields.append(_sample_yield * scale)
+                    else:
+                        yields.append(_sample_yield)
+                yields = np.sum(np.array(yields), axis=0)
+                print("ptbin/region", ptbin, region, yields)
+                if throwPoisson:
+                    yields = np.random.poisson(yields)
+
+                data_obs = (yields, msd.binning, msd.name)
+
+            ch.setObservation(data_obs[0:3])
+
+            # drop bins outside rho validity
+            # validbins[ptbin][0:2] = False
+            mask = validbins[ptbin]
+            ch.mask = mask
+
+    ###################################
+    # Build QCD TF temples
+    log.info("Building QCD TF templates")    
+    if args.tworeg:
+        for ptbin in range(npt):
+            failCh = model[f"ptbin{ptbin}fail"]
+            passChpass = model[f"ptbin{ptbin}passhighbvl"]
+            passChfail = model[f"ptbin{ptbin}passlowbvl"]
+
+            # Fail region
+            qcdparams = np.array(
+                [
+                    rl.IndependentParameter("qcdparam_ptbin%d_msdbin%d" % (ptbin, i), 0)
+                    for i in range(msd.nbins)
+                ]
+            )
+            initial_qcd = failCh.getObservation().astype(
+                float
+            )  # was integer, and numpy complained about subtracting float from it
+            log.debug(f"Initial_qcd: {initial_qcd}")
+            for sample in failCh:
+                initial_qcd -= sample.getExpectation(nominal=True)
+            if args.pseudo:
+                initial_qcd[initial_qcd < 0] = 0.0
+            if np.any(initial_qcd < 0.0):
+                raise ValueError("initial_qcd negative for some bins..", initial_qcd)
+            sigmascale = 10  # to scale the deviation from initial
+            scaledparams = (
+                initial_qcd
+                * (1 + sigmascale / np.maximum(1.0, np.sqrt(initial_qcd))) ** qcdparams
+            )
+            fail_qcd = rl.ParametericSample(
+                f"ptbin{ptbin}fail_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
+            )
+            failCh.addSample(fail_qcd)
+
+            # Transfer factor templates
+            passpass_qcd = rl.TransferFactorSample(
+                f"ptbin{ptbin}passhighbvl_{args.year}_qcd",
+                rl.Sample.BACKGROUND,
+                all_tf_params[0][ptbin, :],
+                fail_qcd,
+            )
+            passChpass.addSample(passpass_qcd)
+
+            passfail_qcd = rl.TransferFactorSample(
+                f"ptbin{ptbin}passlowbvl_{args.year}_qcd",
+                rl.Sample.BACKGROUND,
+                all_tf_params[1][ptbin, :],
+                fail_qcd,
+            )
+            passChfail.addSample(passfail_qcd)
+    else:
+        for ptbin in range(npt):
+            failCh = model["ptbin{ptbin}fail"]
+            passCh = model["ptbin{ptbin}pass"]
+
+            qcdparams = np.array(
+                [
+                    rl.IndependentParameter("qcdparam_ptbin%d_msdbin%d" % (ptbin, i), 0)
+                    for i in range(msd.nbins)
+                ]
+            )
+            initial_qcd = failCh.getObservation().astype(
+                float
+            )  # was integer, and numpy complained about subtracting float from it
+            log.debug("Initial_qcd", initial_qcd)
+            for sample in failCh:
+                initial_qcd -= sample.getExpectation(nominal=True)
+            if args.pseudo:
+                initial_qcd[initial_qcd < 0] = 0.0
+            if np.any(initial_qcd < 0.0):
+                raise ValueError("initial_qcd negative for some bins..", initial_qcd)
+            sigmascale = 10  # to scale the deviation from initial
+            scaledparams = (
+                initial_qcd
+                * (1 + sigmascale / np.maximum(1.0, np.sqrt(initial_qcd))) ** qcdparams
+            )
+            fail_qcd = rl.ParametericSample(
+                f"ptbin{ptbin}fail_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
+            )
+            failCh.addSample(fail_qcd)
+            pass_qcd = rl.TransferFactorSample(
+                f"ptbin{ptbin}pass_{args.year}_qcd",
+                rl.Sample.BACKGROUND,
+                tf_params[ptbin, :],
+                fail_qcd,
+            )
+            passCh.addSample(pass_qcd)
+
+        # To add
+        # tqqpass = passCh["tqq"]
+        # tqqfail = failCh["tqq"]
+        # tqqPF = tqqpass.getExpectation(nominal=True).sum() / tqqfail.getExpectation(nominal=True).sum()
+        # tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
+        # tqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
+        # tqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+        # tqqfail.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+
+    # To add
+    """
+    # Fill in muon CR
+    for region in ["pass", "fail"]:
+        ch = rl.Channel("muonCR%s" % (region,))
+        model.addChannel(ch)
+
+        isPass = region == "pass"
+        templates = {
+            "tqq": gaus_sample(norm=10 * (30 if isPass else 60), loc=150, scale=20, obs=msd),
+            "qcd": expo_sample(norm=10 * (5e2 if isPass else 1e3), scale=40, obs=msd),
+        }
+        for sName, templ in templates.items():
+            stype = rl.Sample.BACKGROUND
+            sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
+
+            # mock systematics
+            jecup_ratio = np.random.normal(loc=1, scale=0.05, size=msd.nbins)
+            sample.setParamEffect(jec, jecup_ratio)
+
+            ch.addSample(sample)
+
+        # make up a data_obs
+        templates = {
+            "tqq": gaus_sample(norm=10 * (30 if isPass else 60), loc=150, scale=20, obs=msd),
+            "qcd": expo_sample(norm=10 * (5e2 if isPass else 1e3), scale=40, obs=msd),
+        }
+        yields = sum(tpl[0] for tpl in templates.values())
+        if throwPoisson:
+            yields = np.random.poisson(yields)
+        data_obs = (yields, msd.binning, msd.name)
+        ch.setObservation(data_obs)
+
+    tqqpass = model["muonCRpass_tqq"]
+    tqqfail = model["muonCRfail_tqq"]
+    tqqPF = tqqpass.getExpectation(nominal=True).sum() / tqqfail.getExpectation(nominal=True).sum()
+    tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
+    tqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
+    tqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+    tqqfail.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+    """
+    with open(os.path.join(str(tmpdir), f"{sig}_model.pkl"), "wb") as fout:
+        pickle.dump(model, fout)
+
+    model.renderCombine(os.path.join(str(tmpdir), f"{sig}_model"))
+
+    conf_dict = vars(args)
+    conf_dict["nbins"] = float(np.sum(validbins))
+    print(conf_dict)
+    import json
+
+    # Serialize data into file:
+    json.dump(
+        conf_dict,
+        open(
+            "{}/config.json".format(
+                f"{tmpdir}/{sig}_model",
+            ),
+            "w",
+        ),
+        sort_keys=True,
+        indent=4,
+        separators=(",", ": "),
+    )
+
+
+if __name__ == "__main__":
+    from rich.prompt import Prompt, Confirm
+
+    global opath
+    startopath = f"{args.opath}/{tagger}/ipt{args.ipt}_irho{args.irho}"
+    os.system(f"cp rhalphalib_zprime.py {startopath}/rhalphalib_zprime.py")
+    for sig in signals:
+        opath = f"{startopath}/{sig}/"
+        if os.path.exists(opath):
+            q_overwrite = Confirm.ask(f"Path: {opath} exists. Overwrite?")
+            if not q_overwrite:
+                print(f"Remove with \nrm -rf {opath}")
+                sys.exit()
+            else:
+                os.system(f"rm -rf {opath}")
+        os.makedirs(opath)
+        test_rhalphabet(opath, sig, args.throwPoisson)
