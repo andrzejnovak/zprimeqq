@@ -14,11 +14,14 @@ if __name__ == '__main__':
     parser_mc = parser.add_mutually_exclusive_group(required=True)
     parser_mc.add_argument('--data', action='store_false', dest='mc')
     parser_mc.add_argument('--mc', action='store_true', dest='mc')
+    parser.add_argument('--highbvl',action='store_true', dest='highbvl')
+    parser.add_argument('--lowbvl',action='store_true', dest='lowbvl')
+    parser.add_argument('--tworeg',action='store_true', dest='tworeg')
     parser.add_argument('--year', type=str, choices=["2016", "2017", "2018"], required=True, help="Year to display.")
     parser.add_argument('--is_blinded', action='store_true', help='')
     parser.add_argument('--param', type=str, choices=['bern', 'cheby', 'exp'], default='bern')
 
-    parser.add_argument('--tagger',type=str, choices=['pnmd2prong_ddt','pnmd2prong_0p05'],required=True)
+    parser.add_argument('--tagger',type=str, choices=['pnmd2prong_ddt','pnmd2prong_0p05','pnmd2prong_0p01',],required=True)
     parser.add_argument('--make', action='store_true', help='')
     parser.add_argument('--build', action='store_true', help='')
 
@@ -40,8 +43,8 @@ if __name__ == '__main__':
     start = time.time()
     commands = []
 
-    rng_pt = 4
-    rng_rho = 4
+    rng_pt = 5
+    rng_rho = 5
 
     if args.param == 'cheby':
         basis = ' --basis Bernstein,Chebyshev'
@@ -57,9 +60,13 @@ if __name__ == '__main__':
                 ###I don't need just MC templates?
                 if args.mc:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --ftest --throwPoisson --scale_qcd --four_pt_bins "
+                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest "#--throwPoisson --scale_qcd --four_pt_bins "
+                        + (" --highbvl" if args.highbvl else "") 
+                        + (" --lowbvl" if args.lowbvl else "") 
                         #+ basis
                     ) 
+                    if args.tworeg:
+                        cmd += " --tworeg "
                 else:
                     cmd = (
                         f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --irhoMC 4 --iptMC 1 --ftest "
@@ -103,6 +110,9 @@ if __name__ == '__main__':
         for i in range(0,rng_pt):
             for j in range(0,rng_pt):
                 base_cmd = "python3 custom.py  --debug False -d {} {} --year {} ".format(args.opath, "--mc" if args.mc else "--data", args.year)
+                if args.highbvl: base_cmd += " --highbvl "
+                if args.lowbvl: base_cmd += " --lowbvl "
+
                 ws_base = " -w {base}/{i}{j}/{tagger}/ipt{i}_irho{j}/m150/m150_model/model_combined.root "
                 ws_alt = " -a {base}/{i}{j}/{tagger}/ipt{i}_irho{j}/m150/m150_model/model_combined.root "
 

@@ -29,7 +29,13 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
     debug = args.debug
     if mc:
         #overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
-        overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
+        overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 "# --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
+        if args.highbvl or args.lowbvl:
+            overall_conf += f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "
+        #elif args.highbvl:
+        #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_1_*}}' --redefineSignalPOIs tf{year}_dataResidual_0_pt_par0_rho_par0".format(year=args.year)
+        #elif args.lowbvl:
+        #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_0_*}}' --redefineSignalPOIs tf{year}_dataResidual_1_pt_par0_rho_par0".format(year=args.year)
     else:
         overall_conf = f" --expectSignal=0 --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "  
         #overall_conf = f" --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 --toysFrequentist "  
@@ -56,33 +62,40 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
     workdir = 'ftest_{}_{}'.format(degs_base, degs_alt)
     ensure_dir(os.path.join(base_dir, workdir))
     os.chdir(os.path.join(base_dir, workdir))
-        
+    condor_total_command = ""  
     # Data fits
     if base:
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .BaseFit  --saveWorkspace --saveFitResult"
             " -d {}".format(ws_base) + overall_conf)
-        exec_bash(command, debug)
-
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .AltFit  --saveWorkspace --saveFitResult"
             " -d {}".format(ws_alt) + overall_conf)
-        exec_bash(command, debug)
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
 
         # Shapes from a fit
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Base  --saveWorkspace --saveShapes " #--SaveWithUncertainties"
             " -d {}".format(ws_base) + overall_conf)
-        exec_bash(command, debug)
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
 
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Alt  --saveWorkspace --saveShapes "#--saveWithUncertainties"
             " -d {}".format(ws_alt) + overall_conf)
-        exec_bash(command, debug)
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
 
         # GoFs Data
         command = ("combineTool.py -M GoodnessOfFit  --algo saturated --cminDefaultMinimizerStrategy 0 "
@@ -91,24 +104,31 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
             " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root")
             +  overall_conf
         )
-        exec_bash(command, debug)
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
         command = ("combineTool.py -M GoodnessOfFit  --algo saturated --cminDefaultMinimizerStrategy 0 "
             #" --snapshotName MultiDimFit --bypassFrequentistFit "
             " -n .Alt "
             " -d {ws}".format(ws="higgsCombine.AltFit.MultiDimFit.mH120.root")
             +  overall_conf
         )
-        exec_bash(command, debug)
+        if not args.condor:
+            exec_bash(command, debug)
+        condor_total_command += command + "\n"
+        if args.condor:
+            total_condor_command += CONDOR_str.format("toysgen_{}_{}".format(seed, pseudorand_str(4)))
 
     # Generate toys
     if gen:
         command = ("combineTool.py -M GenerateOnly  --saveToys "
                 #" --snapshotName MultiDimFit --bypassFrequentistFit "
+                " --toysFrequentist " 
                 " -n Toys "
                 " -t {t} --seed {s} "
-                " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root", t=args.toys, s=seed) +
-                overall_conf)
-        command+=" --toysFrequentist "
+                " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root", t=args.toys, s=seed) 
+                +  overall_conf
+        )
         if args.condor:
             command += CONDOR_str.format("toysgen_{}_{}".format(seed, pseudorand_str(4)))
         exec_bash(command, debug)
@@ -176,6 +196,8 @@ if __name__ == '__main__':
     parser.add_argument('--gen', action="store_true")
     parser.add_argument('--fits', action="store_true")
     parser.add_argument('--all', action="store_true")
+    parser.add_argument('--highbvl', action="store_true")
+    parser.add_argument('--lowbvl', action="store_true")
 
     parser_mc = parser.add_mutually_exclusive_group(required=True)
     parser_mc.add_argument('--data', action='store_false', dest='mc')
