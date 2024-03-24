@@ -533,6 +533,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_shape_dict["mu_idweight"] = rl.NuisanceParameter(
         "CMS_mu_idweight_{}".format(args.year), sys_types["mu_idweight"]
     )
+    for EW_syst in ['d1kappa_EW', 'Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO']:
+        sys_shape_dict[EW_syst] = rl.NuisanceParameter('CMS_{}'.format(EW_syst), sys_types[EW_syst])
+
     # sys_shape_dict['scalevar_7pt'] = rl.NuisanceParameter('CMS_th_scale7pt', sys_types['scalevar_7pt'])
     # sys_shape_dict['scalevar_3pt'] = rl.NuisanceParameter('CMS_th_scale3pt', sys_types['scalevar_3pt'])
 
@@ -880,7 +883,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         "jet_trigger",
                         "pileup_weight",
                         "L1Prefiring",
-                        'Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+                        #'Z_d2kappa_EW', 'Z_d3kappa_EW', 
+                        'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
                         #'scalevar_7pt', 'scalevar_3pt',
                         #'UES','btagEffStat', 'btagWeight',
                     ]
@@ -889,7 +893,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         "JER": ["jerdown", "jerup"],
                         "pileup_weight": ["pudown", "puup"],
                         "jet_trigger": ["stat_dn", "stat_up"],
-                        "L1Prefiring": ["L1PreFiringup", "L1PreFiringdown"],
+                        "L1Prefiring": ["L1PreFiringdown", "L1PreFiringup"],
+                        "d1kappa_EW" : ["d1kappa_EW_down", "d1kappa_EW_up"],
+                        "d1K_NLO" : ["d1K_NLO_down", "d1K_NLO_up"],
+                        "d2K_NLO" : ["d2K_NLO_down", "d2K_NLO_up"],
+                        "d3K_NLO" : ["d3K_NLO_down", "d3K_NLO_up"],
+                        "Z_d2kappa_EW" : ["Z_d2kappa_EW_down","Z_d2kappa_EW_up"],
+                        "Z_d3kappa_EW" : ["Z_d3kappa_EW_down","Z_d3kappa_EW_up"],
                     }
                     if stype == rl.Sample.SIGNAL and not args.ftest:
                         sName = short_to_long[sName]
@@ -1049,6 +1059,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             passChfail.addSample(passfail_qcd)
     else:
         for ptbin in range(npt):
+            passkey = f"ptbin{ptbin}pass"
             if args.highbvl:
                 passkey = f"ptbin{ptbin}passhighbvl"
             elif args.lowbvl:
@@ -1094,9 +1105,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     if args.muonCR:
         if args.tworeg:
             for ptbin in range(npt):
-                failCh = model[f"ptbin{ptbin}{fail_regs[0].replace(' ','')}"]
-                passCh_highbvl = model[f"ptbin{ptbin}{pass_regs[0].replace(' ','')}"]
-                passCh_lowbvl  = model[f"ptbin{ptbin}{pass_regs[1].replace(' ','')}"]
+                failCh = model[f"ptbin{ptbin}{fail_regs[0].replace('_','')}"]
+                passCh_highbvl = model[f"ptbin{ptbin}{pass_regs[0].replace('_','')}"]
+                passCh_lowbvl  = model[f"ptbin{ptbin}{pass_regs[1].replace('_','')}"]
                 tqqpass_highbvl = passCh_highbvl["tt"]
                 tqqpass_lowbvl  = passCh_lowbvl["tt"]
                 tqqfail         = failCh["tt"]
@@ -1152,7 +1163,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         log.debug("Adding Top CR") 
         for region in list(set(pass_regs+fail_regs)):
             model_reg_name = region.replace("_", "")
-            ch = rl.Channel(f"muonCR{model_reg_name}_tqq")
+            ch = rl.Channel(f"muonCR{model_reg_name}")
             model.addChannel(ch)
     
             templates = {
@@ -1163,7 +1174,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         region, "st", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
                     ),
                     "qcd": get_templ(
-                        region, "qcd", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "QCD", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
                     ),
                     "wlnu": get_templ(
                         region, "wlnu", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
@@ -1197,7 +1208,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
                     sys_names = [
                         'JES', 'JER', 'UES', 'mu_trigger', 'mu_isoweight', 'mu_idweight', #'btagEffStat', 'btagWeight', 'pileup_weight',
-                        'Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+                        #'Z_d2kappa_EW', 'Z_d3kappa_EW',  
+                        'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
                         'L1Prefiring',
                     ]
 
@@ -1222,39 +1234,60 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 continue
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
                 else:
-                    sample.setParamEffect(sys_lumi, 1.023)
+                    sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
     
                 ch.addSample(sample)
     
             
             data_obs = get_templ(
-                    region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins
+                    region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
             )
             ch.setObservation(data_obs[0:3])
         if args.tworeg:
             
-            tqqpass_highbvl = model[f"muonCR{pass_regs[0].replace(' ','')}_tqq"]
-            tqqpass_lowbvl  = model[f"muonCR{pass_regs[1].replace(' ','')}_tqq"]
-            tqqfail         = model[f"muonCR{fail_regs[0].replace(' ','')}_tqq"]
-            tqqPF_highbvl   = tqqpass_highbvl.getExpectation(nominal=True).sum() / tqqfail.getExpectation(nominal=True).sum()
-            tqqPF_lowbvl    = tqqpass_lowbvl.getExpectation(nominal=True).sum() / tqqfail.getExpectation(nominal=True).sum()
+            tqqpass_highbvl = model[f"muonCR{pass_regs[0].replace('_','')}"]["tt"]
+            tqqpass_lowbvl  = model[f"muonCR{pass_regs[1].replace('_','')}"]["tt"]
+            tqqfail         = model[f"muonCR{fail_regs[0].replace('_','')}"]["tt"]
+            stqqpass_highbvl = model[f"muonCR{pass_regs[0].replace('_','')}"]["st"]
+            stqqpass_lowbvl  = model[f"muonCR{pass_regs[1].replace('_','')}"]["st"]
+            stqqfail         = model[f"muonCR{fail_regs[0].replace('_','')}"]["st"]
+
+            tqqPF_highbvl   = (tqqpass_highbvl.getExpectation(nominal=True).sum()  + tqqpass_highbvl.getExpectation(nominal=True).sum()) / (tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum() ) 
+            tqqPF_lowbvl    = (tqqpass_lowbvl.getExpectation(nominal=True).sum() + stqqpass_lowbvl.getExpectation(nominal=True).sum()) / (tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum())
+
             tqqpass_highbvl .setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
             tqqpass_lowbvl  .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
             tqqfail         .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
             tqqfail         .setParamEffect(tqqeffSF_lowbvl,  (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
             tqqpass_highbvl .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
             tqqpass_lowbvl  .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-            tqqfail         .setParamEffect(tqqnormSF, 1 * tqqnormSF_highbvl)
-            tqqfail         .setParamEffect(tqqnormSF, 1 * tqqnormSF_lowbvl)
+            tqqfail         .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
+            tqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
+ 
+            stqqpass_highbvl .setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
+            stqqpass_lowbvl  .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
+            stqqfail         .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
+            stqqfail         .setParamEffect(tqqeffSF_lowbvl,  (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
+            stqqpass_highbvl .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
+            stqqpass_lowbvl  .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
+            stqqfail         .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
+            stqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
 
         else: 
-            tqqpass = model["muonCRpass_tqq"]
-            tqqfail = model["muonCRfail_tqq"]
-            tqqPF = tqqpass.getExpectation(nominal=True).sum() / tqqfail.getExpectation(nominal=True).sum()
+            tqqpass = model["muonCRpass"]["tt"]
+            tqqfail = model["muonCRfail"]["tt"]
+            stqqpass = model["muonCRpass"]["st"]
+            stqqfail = model["muonCRfail"]["st"]
+            tqqPF = (tqqpass.getExpectation(nominal=True).sum() + stqqpass.getExpectation(nominal=True).sum())/ ( tqqfail.getExpectation(nominal=True).sum() + tqqfail.getExpectation(nominal=True).sum())
             tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
             tqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
             tqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
             tqqfail.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+            stqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
+            stqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
+            stqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+            stqqfail.setParamEffect(tqqnormSF, 1 * tqqnormSF)
+
     with open(os.path.join(str(tmpdir), f"{sig}_model.pkl"), "wb") as fout:
         pickle.dump(model, fout)
 

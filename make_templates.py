@@ -43,6 +43,7 @@ sample_maps = {
     "zpbb150" : ["VectorZPrimeToBB_M150"],
     "zpbb200" : ["VectorZPrimeToBB_M200"],
     "zpbb250" : ["VectorZPrimeToBB_M250"],
+    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"]
 }
 
 sample_maps_mu = {
@@ -53,9 +54,8 @@ sample_maps_mu = {
     "tt"  : ["TTTo2L2Nu","TTToHadronic","TTToSemiLeptonic"],
     "dy"  : ["DYJetsToLL_HT-400To600","DYJetsToLL_HT-600To800","DYJetsToLL_HT-800To1200","DYJetsToLL_HT-1200To2500"],
     "st"  : ["ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8","ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8"],
-    "hbb" : ["GluGluHToBB"],
     "wlnu" : ["WJetsToLNu_HT400to600","WJetsToLNu_HT600to800","WJetsToLNu_HT800to1200","WJetsToLNu_HT1200to2500","WJetsToLNu_HT2500toInf"],
-    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C.root","SingleMuon_Run2017D.root","SingleMuon_Run2017E.root","SingleMuon_Run2017F.root"]
+    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"]
 }
 sys_names = [
     'JES', 'JER', 'jet_trigger','pileup_weight','L1Prefiring',
@@ -112,22 +112,28 @@ def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=F
     master_hist = None
 
     if muon:
-        hist_str = f"CR1__{tagger}_{region}"
+        #if "lowbvl" in region or "highbvl" in region:
+        #    hist_str = f"CR1_{tagger}_{region}"
+        #else: 
+        #    hist_str = f"CR1__{tagger}_{region}"
+        hist_str = f"CR1_{tagger}_{region}"
         master_hist_name = hist_str.replace(f"_{tagger}",f"_{sample}_{tagger}")
+        file0 = ROOT.TFile(f"{path}/{sample_maps_mu[sample][0]}.root", "READ")
     else:
         hist_str = f"SR_ptbin{ptbin}_{tagger}_{region}"
         master_hist_name = hist_str.replace(f"_ptbin{ptbin}",f"_{sample}_ptbin{ptbin}")
+        file0 = ROOT.TFile(f"{path}/{sample_maps[sample][0]}.root", "READ")
     if syst is not None:
         hist_str += f"__{syst}"
         master_hist_name += f"__{syst}"
-    file0 = ROOT.TFile(f"{path}/{sample_maps[sample][0]}.root", "READ")
+    print("hist_str",hist_str)
     hist0 = file0.Get(hist_str)
     master_hist = hist0.Clone(master_hist_name)#+"_"+sample)
     master_hist.Reset()
     for subsample in sample_maps[sample]:
         file = ROOT.TFile(f"{path}/{subsample}.root")
         hist = file.Get(hist_str)
-        if "JetHT" not in subsample:
+        if not("JetHT" in subsample or "SingleMuon" in subsample):
             factor = get_factor(file,subsample)
             hist.Scale(factor)
         master_hist.Add(hist)  # Add to master, uncertainties are handled automatically
@@ -164,14 +170,16 @@ if args.root_path_mu:
     output_file = ROOT.TFile(args.root_path_mu+f"/TEMPLATES{'_blind' if args.is_blinded else ''}.root", "RECREATE")
     print("Making CR templates from path ",args.root_path_mu)
     for isamp,isamplist in sample_maps_mu.items():
-        for tagger in ["pnmd2prong_0p05","n2_0p05"]:
-            for region in ["pass","fail","pass_lowbvl","pass_highbvl",]:
+        for tagger in ["pnmd2prong_0p01"]:
+            for region in ["fail","pass_lowbvl","pass_highbvl",]:
                 make_templates(args.root_path_mu,region,isamp,0,tagger,syst=None,muon=True,nowarn=False,year="2017")
                 if "SingleMuon" in isamp: continue
                 for syst in sys_names:
+                    if syst in ["jet_trigger","muoiso"]: continue
                     if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
                     if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
                     if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue 
+                    print(isamp,isamplist,0,tagger,sys_name_updown[syst][0],)
                     make_templates(args.root_path_mu,region,isamp,0,tagger,syst=sys_name_updown[syst][0],muon=True,nowarn=False,year="2017")
                     make_templates(args.root_path_mu,region,isamp,0,tagger,syst=sys_name_updown[syst][1],muon=True,nowarn=False,year="2017")
 
