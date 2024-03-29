@@ -1141,8 +1141,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 tqqPF_lowbvl  = sumPass_lowbvl / sumFail
                 tqqpass_highbvl.setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
                 tqqpass_lowbvl .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-                tqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl * tqqPF_highbvl + 1))
-                tqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl * tqqPF_lowbvl + 1))
+                tqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
+                tqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
                 tqqpass_highbvl.setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
                 tqqpass_lowbvl .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
                 tqqfail        .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl) 
@@ -1151,8 +1151,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
                 stqqpass_highbvl.setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
                 stqqpass_lowbvl .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-                stqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl * tqqPF_highbvl + 1))
-                stqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl * tqqPF_lowbvl + 1))
+                stqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
+                stqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
                 stqqpass_highbvl.setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
                 stqqpass_lowbvl .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
                 stqqfail        .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
