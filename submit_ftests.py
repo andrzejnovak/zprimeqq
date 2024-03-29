@@ -61,24 +61,25 @@ if __name__ == '__main__':
                 ###I don't need just MC templates?
                 if args.mc:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd "#--throwPoisson --scale_qcd --four_pt_bins "
+                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd "
                         + (" --highbvl" if args.highbvl else "") 
-                        + (" --lowbvl" if args.lowbvl else "") 
-                        #+ basis
+                        + (" --lowbvl" if args.lowbvl else "")
+                        + (" --tworeg" if args.tworeg else "") 
                     ) 
-                    if args.tworeg:
-                        cmd += " --tworeg "
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --irhoMC 4 --iptMC 2 --ftest "
-                        #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muCR True "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest "
+                        #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muonCR "
                         + (" --is_blinded " if args.is_blinded else "")
-                        #+ basis
+                        + (" --highbvl" if args.highbvl else "") 
+                        + (" --lowbvl" if args.lowbvl else "")
+                        + (" --tworeg" if args.tworeg else "") 
+                        
                     )
-                    #if args.year in ["2016", "2018"]:
-                    #    cmd += " --degsMC 0,2 "
-                    #else:
-                    #    cmd += " --degsMC 1,2 "
+                    if args.year in ["2017"]:
+                        cmd += " --irhoMC 4 --iptMC 2 "
+                    else:
+                        raise ValueError(f"Dont have MC poly for year {args.year}!")
                 commands.append(cmd)
 
     if args.build:
