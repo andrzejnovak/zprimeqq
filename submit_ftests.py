@@ -52,7 +52,8 @@ if __name__ == '__main__':
         basis = ' --basis Bernstein,Bernstein --transform '
     else:
         basis = " "
-    
+    if args.tworeg and not (args.highbvl or args.lowbvl):
+        raise RuntimeError("Need args.highbvl or args.lowbvl for f-test") 
     if args.make:
         # Made workspaces
         for pt in range(0, rng_pt + 1):
@@ -60,7 +61,7 @@ if __name__ == '__main__':
                 ###I don't need just MC templates?
                 if args.mc:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest "#--throwPoisson --scale_qcd --four_pt_bins "
+                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd "#--throwPoisson --scale_qcd --four_pt_bins "
                         + (" --highbvl" if args.highbvl else "") 
                         + (" --lowbvl" if args.lowbvl else "") 
                         #+ basis
@@ -69,7 +70,7 @@ if __name__ == '__main__':
                         cmd += " --tworeg "
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --irhoMC 4 --iptMC 1 --ftest "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --irhoMC 4 --iptMC 2 --ftest "
                         #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muCR True "
                         + (" --is_blinded " if args.is_blinded else "")
                         #+ basis
@@ -125,7 +126,7 @@ if __name__ == '__main__':
 
 
     if args.plot:
-        base_cmd = "python3 new_plot_ftests.py -o {} --year {} {} ".format(args.outplots, args.year, "--mc" if args.mc else "")
+        base_cmd = "python3 new_plot_ftests.py -o {} --year {} {} {} {} ".format(args.outplots, args.year, "--mc" if args.mc else "", "--lowbvl" if args.lowbvl else "", "--highbvl" if args.highbvl else "")
         if args.mc:
             base_cmd += " --qplots "
         for i in range(rng_pt+1):

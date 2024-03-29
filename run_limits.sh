@@ -63,7 +63,7 @@ if [[ ! -f "./model_combined.txt" ]]; then
 fi 
 
 if [[ $LIMITS == true ]]; then
-   cmd="combine -M AsymptoticLimits model_combined.txt  --cminDefaultMinimizerType Minuit2 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.1 --cminFallbackAlgo Minuit2,0:0.2 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --expectSignal 0.0001"
+   cmd="combine -M AsymptoticLimits -d model_combined.root  --cminDefaultMinimizerType Minuit2 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.1 --cminFallbackAlgo Minuit2,0:0.2 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --expectSignal 0.0001"
 fi
 
 

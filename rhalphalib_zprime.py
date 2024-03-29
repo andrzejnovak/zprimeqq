@@ -15,7 +15,7 @@ from rhalphalib import AffineMorphTemplate, MorphHistW2
 import logging
 from rich.logging import RichHandler
 import click
-    
+from common import * 
 
 rl.util.install_roofit_helpers()
 # rl.ParametericSample.PreferRooParametricHist = False
@@ -70,8 +70,14 @@ parser.add_argument(
     "--root_file_mu",
     action="store",
     type=str,
-    required=True,
+    required=False,
     help="Path to ROOT holding mu templates.",
+)
+parser.add_argument(
+    "--h_sensitivity", action="store_true", help="Just to run sensitivty check for H with toy 150 invfb data."
+)
+parser.add_argument(
+    "--make_prefit_plot", action="store_true", help="Just to run prefit plot."
 )
 parser.add_argument(
     "--all_signals", action="store_true", help="Run on all signal templates."
@@ -118,7 +124,6 @@ parser.add_argument("--verbose", "-v", action="store_true", help="Verbose loggin
 parser.add_argument("--debug", "-vv", action="store_true", help="Debug logging")
 
 args = parser.parse_args()
-
 # Arg processing
 log_level = logging.WARNING
 if args.verbose:
@@ -135,35 +140,17 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 
 
-tagger = args.tagger
 SF = {
     "2017": {
-        "V_SF": 0.819,
-        "V_SF_ERR": 0.041,
-        "SHIFT_SF": 0.117,
-        "SHIFT_SF_ERR": 0.343,
-        "SMEAR_SF": 1.075,
-        "SMEAR_SF_ERR":0.059,
+        "V_SF": 0.827,
+        "V_SF_ERR": 0.042,
+        "SHIFT_SF": 0.417,
+        "SHIFT_SF_ERR": 0.395,
+        "SMEAR_SF": 1.011,
+        "SMEAR_SF_ERR":0.024,
     }
 }
-
-lumi_dict = {"2017": 41100}
-
-lumi_dict_unc = {
-    "2016": 1.01,
-    "2017": 1.02,
-    "2018": 1.015,
-}
-lumi_correlated_dict_unc = {
-    "2016": 1.006,
-    "2017": 1.009,
-    "2018": 1.02,
-}
-lumi_1718_dict_unc = {
-    "2017": 1.006,
-    "2018": 1.002,
-}
-
+tagger = args.tagger
 
 def smass(sName):
     if "hbb" in sName:
@@ -433,7 +420,11 @@ def get_templ(
         hist_values += hist.values()
         hist_variances += hist.variances()
 
-    return (hist_values, hist_edges, "msd", hist_variances)
+    if muon:
+        hist_key = "msd_muon"
+    else:
+        hist_key = "msd"
+    return (hist_values, hist_edges, hist_key, hist_variances)
 
 
 def th1_to_numpy(path, label="msd"):
@@ -564,6 +555,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     npt = len(ptbins) - 1
     msdbins = np.linspace(40, 350, 63)
     msd = rl.Observable("msd", msdbins)
+    msdbins_muon = np.linspace(40, 240 , 41)
+    msd_muon = rl.Observable("msd_muon", msdbins_muon)
 
     # here we derive these all at once with 2D array
     ptpts, msdpts = np.meshgrid(
@@ -602,9 +595,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         fail_regs = ["fail"]
 
     qcdeffs = [] 
+    #from Collections import defaultdict
+    #scale_qcd = defaultdict(list)
+    it = 0 
     for qcdmodel, qcdpass, qcdfail, rpass, rfail in zip(
         qcdmodels, qcd_counts_pass, qcd_counts_fail, pass_regs, fail_regs
     ):
+        print(qcdmodel, qcdpass, qcdfail, rpass, rfail) 
         for ptbin in range(npt):
             failCh = rl.Channel("ptbin%d%s" % (ptbin, "fail"))
             passCh = rl.Channel("ptbin%d%s" % (ptbin, "pass"))
@@ -621,8 +618,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             if args.MCTF:
                 qcdmodel.addChannel(failCh)
                 qcdmodel.addChannel(passCh)
+            if args.make_prefit_plot:
+                values, _, _, _ = get_templ(rpass, f"JetHT_2017", ptbin, tagger, fourptbins=args.four_pt_bins)
+                #scale_qcd[f"{pass}"].append(values.sum()/qcdpass)
         qcdeffs.append(qcdpass / qcdfail)
-           
+        it += 1
 
     if args.MCTF:
         tf_MCtempls = []
@@ -743,7 +743,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ["pt", "rho"],
             basis="Bernstein",
             init_params=_inits,
-            limits=(-50, 50),
+            limits=(-10, 10),
             coefficient_transform=None,
         )
         # tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", poly_order, ["pt", "rho"], init_params=_inits, limits=(0, 10))
@@ -751,8 +751,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
         if args.MCTF:
             tf_params = qcdeffs[i] * all_tf_MCtempl_params_final[i] * tf_dataResidual_params
+            if args.make_prefit_plot:
+                tf_params *= 1/np.mean(scale_qcd[i])
         else:
             tf_params = qcdeffs[i] * tf_dataResidual_params
+            if args.make_prefit_plot:
+                tf_params *= 1/np.mean(scale_qcd[i])
         all_tf_params.append(tf_params)
         
     ##############################
@@ -767,9 +771,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         )
 
     scale_pass = []
+    
     for ptbin in range(npt):
         # for region in ["pass", "fail"]:
-        for region in list(set(pass_regs+fail_regs)):
+        all_regs = pass_regs + fail_regs[:1] #only look at one (common) fail region 
+        #for region in list(set(pass_regs+fail_regs)):
+        for region in sorted(all_regs, key=lambda x: (not x.startswith("pass"), x)):
             model_reg_name = region.replace("_", "")         
             ch = rl.Channel(f"ptbin{ptbin}{model_reg_name}")
             log.debug(f"Initializing model region: ptbin{ptbin}{model_reg_name}")   
@@ -835,6 +842,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             if args.qcd_ftest:
                 include_samples = ["zqq"]  # qcd here?
+            elif args.h_sensitivity:
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb",]
             else:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
 
@@ -846,6 +855,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 if args.qcd_ftest:
                     stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
                     # templ[0] = templ[0]*1e-4 #Scale down signal?
+                elif args.h_sensitivity:
+                    stype = rl.Sample.SIGNAL if sName == "hbb" else rl.Sample.BACKGROUND
                 else:
                     stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy] else rl.Sample.BACKGROUND
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
@@ -951,13 +962,18 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     yields = np.random.poisson(yields)
             else:
                 yields = []
-
-                for sName in ["QCD"]:
+                if args.qcd_ftest:
+                    include_samples = ["QCD"]
+                elif args.h_sensitivity:
+                    include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb","QCD"]
+                print(include_samples)
+                for sName in include_samples:
                     _sample = get_templ(
                         region, sName, ptbin, tagger, fourptbins=args.four_pt_bins
                     )
                     _sample_yield = _sample[0]
                     if args.scale_qcd:
+                        print(sName, region)
                         if "pass" in region:
                             dummyqcd = rl.TemplateSample(
                                 "dummyqcd", rl.Sample.BACKGROUND, _sample
@@ -979,7 +995,10 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             mean = diff / (2.0 * np.sum(nomrate))
                             # sqrt(nom*N) = mean -> N = mean**2/nom
                             scale = mean**2 / np.sum(nomrate)
-                            scale = 10  # 1./np.sqrt(scale)
+                            if args.lowbvl:
+                                scale = 6.5  # 1./np.sqrt(scale)
+                            elif args.highbvl:
+                                scale = 5.5  # 1./np.sqrt(scale)
                             scale_pass.append(scale)
                             print(
                                 "qcdscale needed to match mcstat uncs: using poisson:",
@@ -1077,7 +1096,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             initial_qcd = failCh.getObservation().astype(
                 float
             )  # was integer, and numpy complained about subtracting float from it
-            log.debug("Initial_qcd", initial_qcd)
+            print(initial_qcd)
+            #log.debug("Initial_qcd", initial_qcd)
             for sample in failCh:
                 initial_qcd -= sample.getExpectation(nominal=True)
             if args.pseudo:

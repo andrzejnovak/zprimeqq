@@ -19,6 +19,7 @@ parser.add_argument('--gq', dest='gq', action='store_true',default=False, help='
 parser.add_argument('--asimov', dest='asimov', action='store_true',default=False, help='limits on asimov dataset')
 parser.add_argument('--lumi', dest='lumi', action='store',type=float,help='luminosity')
 parser.add_argument('--year', dest='year', action='store',type=str,help='luminosity')
+parser.add_argument('--rb', dest='rb', action='store_true',help='b-limit')
 
 args = parser.parse_args()
 
@@ -79,7 +80,10 @@ def get_graphs():
     hi2 = []
     obs = [] 
     for mass in masses:
-        limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombineTest.AsymptoticLimits.mH120.root")
+        if args.rb:
+            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombinerblimit.AsymptoticLimits.mH120.root")
+        else:
+            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombineTest.AsymptoticLimits.mH120.root")
         fac = sample_xsec['Zpqq'].Eval(mass,0,'S')
         theory = theory_xsec['Zpqq'].Eval(mass,0,'S')
         theory = theory * 4. * 4.
@@ -98,7 +102,10 @@ def get_graphs():
     
     if args.observed:
         ax.plot(masses,obs,color='#F0240Bff',marker='o',label="Observed")
-    ax.set_ylabel("$g'_{q}$")
+    if args.rb:
+        ax.set_ylabel("$g'_{b}$")
+    else:
+        ax.set_ylabel("$g'_{q}$")
     ax.set_xlabel("Z' mass (GeV)")
     plt.tight_layout()
     plt.legend(loc="upper left")

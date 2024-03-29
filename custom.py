@@ -29,9 +29,8 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
     debug = args.debug
     if mc:
         #overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
-        overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 "# --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
-        if args.highbvl or args.lowbvl:
-            overall_conf += f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "
+        overall_conf = f" --expectSignal=0 "# --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
+        overall_conf += f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "
         #elif args.highbvl:
         #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_1_*}}' --redefineSignalPOIs tf{year}_dataResidual_0_pt_par0_rho_par0".format(year=args.year)
         #elif args.lowbvl:
@@ -69,33 +68,34 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .BaseFit  --saveWorkspace --saveFitResult"
             " -d {}".format(ws_base) + overall_conf)
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
+        if args.condor:
+            command += CONDOR_str.format("basemultifit")
+    
+        exec_bash(command, debug)
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .AltFit  --saveWorkspace --saveFitResult"
             " -d {}".format(ws_alt) + overall_conf)
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
+        if args.condor:
+            command += CONDOR_str.format("altmultifit")
+        exec_bash(command, debug)
 
         # Shapes from a fit
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Base  --saveWorkspace --saveShapes " #--SaveWithUncertainties"
             " -d {}".format(ws_base) + overall_conf)
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
+        if args.condor:
+            command += CONDOR_str.format("basefitdiag")
+        exec_bash(command, debug)
 
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Alt  --saveWorkspace --saveShapes "#--saveWithUncertainties"
             " -d {}".format(ws_alt) + overall_conf)
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
+        if args.condor:
+            command += CONDOR_str.format("altfitdiag")
+        exec_bash(command, debug)
 
         # GoFs Data
         command = ("combineTool.py -M GoodnessOfFit  --algo saturated --cminDefaultMinimizerStrategy 0 "
@@ -104,20 +104,19 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
             " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root")
             +  overall_conf
         )
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
+        if args.condor:
+            command += CONDOR_str.format("basegof")
+        exec_bash(command, debug)
         command = ("combineTool.py -M GoodnessOfFit  --algo saturated --cminDefaultMinimizerStrategy 0 "
             #" --snapshotName MultiDimFit --bypassFrequentistFit "
             " -n .Alt "
             " -d {ws}".format(ws="higgsCombine.AltFit.MultiDimFit.mH120.root")
             +  overall_conf
         )
-        if not args.condor:
-            exec_bash(command, debug)
-        condor_total_command += command + "\n"
         if args.condor:
-            total_condor_command += CONDOR_str.format("toysgen_{}_{}".format(seed, pseudorand_str(4)))
+            command += CONDOR_str.format("altgof")
+
+        exec_bash(command, debug)
 
     # Generate toys
     if gen:

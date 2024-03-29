@@ -117,9 +117,13 @@ def fplot(fvals, f_data, ref, alt, year=2017, nbins=130, savename=None, mc=False
         fig.savefig('{}.png'.format(savename), dpi=300, transparent=True, bbox_inches='tight')
     
 
-def prep_data(infile, reg, mc,year):
+def prep_data(infile, reg, mc,year, lowbvl=False, highbvl=False):
 
-    
+    if "pass" in reg:
+        if lowbvl: reg += "lowbvl"
+        if highbvl: reg += "highbvl"
+    print("prep_data",reg,mc,year,lowbvl,highbvl)
+    #print("key",'shapes_prefit/{}/{}_qcd'.format(reg,year))
     prefit_qcd = infile['shapes_prefit/{}/{}_qcd'.format(reg,year)].values()
     prefit_qcd_err = infile['shapes_prefit/{}/total_background'.format(reg,)].variances()
     postfit_qcd = infile['shapes_fit_s/{}/{}_qcd'.format(reg,year)].values()
@@ -155,9 +159,9 @@ def prepostplot(data, prefit_qcd, postfit_qcd, bins, centers, prefit_qcd_err, po
     hep.histplot(postfit_qcd, bins, yerr=postfit_qcd_err, color='blue', ax=ax, 
                  label='PostFit, $\chi^2 = {:.1f}$'.format(chi2_post))
     #print(centersi,data)
-    print("data_err",data_err)
-    print("prefit_qcd_err",prefit_qcd_err)
-    print("postfit_qcd_err",postfit_qcd_err)
+    #print("data_err",data_err)
+    #print("prefit_qcd_err",prefit_qcd_err)
+    #print("postfit_qcd_err",postfit_qcd_err)
     data_err = data_err[1]
     ax.errorbar(centers, data, fmt='o', xerr=width, yerr=data_err, color='black', label='True QCD')
     
@@ -183,12 +187,12 @@ def prepostplot(data, prefit_qcd, postfit_qcd, bins, centers, prefit_qcd_err, po
         fig.savefig('{}.pdf'.format(savename), dpi=300, transparent=True, bbox_inches='tight')
         fig.savefig('{}.png'.format(savename), dpi=300, transparent=True, bbox_inches='tight')
 
-def prepostplotall(infile, year="2016", degs=(2,4), savename=None, mc=False):
+def prepostplotall(infile, year="2016", degs=(2,4), savename=None, mc=False, lowbvl=False, highbvl=False):
     col = []
     for i in range(5):
         reg = 'ptbin'+str(i)+'pass'
         #reg = 'ptbin'+str(i)+'pass'+str(year)
-        col.append(prep_data(infile, reg, mc,year))
+        col.append(prep_data(infile, reg, mc,year,lowbvl, highbvl))
 
     data = np.sum(np.array(col)[:, 0], axis=0)
     prefit_qcd = np.sum(np.array(col)[:, 1], axis=0)
@@ -221,6 +225,8 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--outdir', type=str, default=None, help="Plots out")
     parser.add_argument('--year', type=str, choices=["2016", "2017", "2018"], required=True, help="Year to display on plots.")
     parser.add_argument('--mc', action='store_true', dest='mc')
+    parser.add_argument('--highbvl', action='store_true', dest='highbvl')
+    parser.add_argument('--lowbvl', action='store_true', dest='lowbvl')
     parser.add_argument('--qplots', action='store_true')
     parser.add_argument('--nbins', type=int, default=130, help="NBINS")
     args = parser.parse_args()
@@ -265,20 +271,23 @@ if __name__ == "__main__":
     
         fi_base = uproot.open(os.path.join(dirname,'fitDiagnostics.Base.root'))
         fi_alt = uproot.open(os.path.join(dirname,'fitDiagnostics.Alt.root'))
-
-        for i in range(5):
-            reg = 'ptbin'+str(i)+'pass'
-            #reg = 'ptbin'+str(i)+'pass'+str(args.year)
-            savepath = os.path.join(args.outdir, "qcd_{}{}".format(ref_pt, ref_rho), "qcd_pt{}".format(i))
-            prepostplot(*prep_data(fi_base, reg, args.mc,args.year), degs=(ref_pt, ref_rho), reg=reg, year=args.year, savename=savepath)   
-        savepath = os.path.join(args.outdir, "qcd_{}{}".format(ref_pt, ref_rho), "qcd_allpt") 
-        prepostplotall(fi_base, savename=savepath, degs=(ref_pt, ref_rho), year=args.year, mc=args.mc)
-
+        print("fi_alt",os.path.join(dirname,'fitDiagnostics.Alt.root'))
         for i in range(5):
             reg = 'ptbin'+str(i)+'pass'
             #reg = 'ptbin'+str(i)+'pass'+str(args.year)
             savepath = os.path.join(args.outdir, "qcd_{}{}".format(alt_pt, alt_rho), "qcd_pt{}".format(i))
-            prepostplot(*prep_data(fi_alt, reg, args.mc,args.year), degs=(alt_pt, alt_rho), reg=reg, year=args.year, savename=savepath)   
+            prepostplot(*prep_data(fi_alt, reg, args.mc,args.year, args.lowbvl, args.highbvl), degs=(alt_pt, alt_rho), reg=reg, year=args.year, savename=savepath)   
         savepath = os.path.join(args.outdir, "qcd_{}{}".format(alt_pt, alt_rho), "qcd_allpt") 
-        prepostplotall(fi_alt, savename=savepath, degs=(alt_pt, alt_rho), year=args.year, mc=args.mc)
+        prepostplotall(fi_alt, savename=savepath, degs=(alt_pt, alt_rho), year=args.year, mc=args.mc, lowbvl=args.lowbvl, highbvl=args.highbvl)
+        print("qcd_{}{}".format(ref_pt, ref_rho))
+
+        print("fi_base",os.path.join(dirname,'fitDiagnostics.Base.root'))
+        for i in range(5):
+            reg = 'ptbin'+str(i)+'pass'
+            #reg = 'ptbin'+str(i)+'pass'+str(args.year)
+            savepath = os.path.join(args.outdir, "qcd_{}{}".format(ref_pt, ref_rho), "qcd_pt{}".format(i))
+            prepostplot(*prep_data(fi_base, reg, args.mc,args.year, args.lowbvl, args.highbvl), degs=(ref_pt, ref_rho), reg=reg, year=args.year, savename=savepath)   
+        print("qcd_{}{}".format(ref_pt, ref_rho))
+        savepath = os.path.join(args.outdir, "qcd_{}{}".format(ref_pt, ref_rho), "qcd_allpt") 
+        prepostplotall(fi_base, savename=savepath, degs=(ref_pt, ref_rho), year=args.year, mc=args.mc, lowbvl=args.lowbvl, highbvl=args.highbvl)
 
