@@ -20,6 +20,19 @@ lumi_1718_dict_unc = {
     "2018": 1.002,
 }
 
+sys_name_updown = {
+    "JES": ["jesTotaldown", "jesTotalup"],
+    "JER": ["jerdown", "jerup"],
+    "pileup_weight": ["pudown", "puup"],
+    "jet_trigger": ["stat_dn", "stat_up"],
+    "L1Prefiring": ["L1PreFiringdown", "L1PreFiringup"],
+    "d1kappa_EW" : ["d1kappa_EW_down", "d1kappa_EW_up"],
+    "d1K_NLO" : ["d1K_NLO_down", "d1K_NLO_up"],
+    "d2K_NLO" : ["d2K_NLO_down", "d2K_NLO_up"],
+    "d3K_NLO" : ["d3K_NLO_down", "d3K_NLO_up"],
+    "Z_d2kappa_EW" : ["Z_d2kappa_EW_down","Z_d2kappa_EW_up"],
+    "Z_d3kappa_EW" : ["Z_d3kappa_EW_down","Z_d3kappa_EW_up"],
+}
 
 
 sample_maps = {
@@ -83,8 +96,8 @@ sys_name_updown = {
     'd1K_NLO' : ["d1K_NLO_down","d1K_NLO_up"],  
     'd2K_NLO' : ["d2K_NLO_down","d2K_NLO_up"],  
     'd3K_NLO' : ["d3K_NLO_down","d3K_NLO_up"],  
-    'muoid' : ["muoiddown","muoidup"],
-    'muotrig' : ["muotrigdown","muotrigup"],
-    'muoiso' : ["muoisodown","muoisoup"],
+    'mu_idweight' : ["muoiddown","muoidup"],
+    'mu_trigger' : ["muotrigdown","muotrigup"],
+    'mu_isoweight' : ["muoisodown","muoisoup"],
     
 }

@@ -420,6 +420,9 @@ def get_templ(
         hist_values += hist.values()
         hist_variances += hist.variances()
 
+    if np.any(hist_values < 0.0):
+        hist_values [hist_values < 0.0] = 0.
+        log.info(f"Some negative values in region={region}, sample={sample}, ptbin={ptbin} template; setting those to zero")
     if muon:
         hist_key = "msd_muon"
     else:
@@ -439,12 +442,14 @@ def shape_to_num(
 ):
     # print(sName)
 
-    _nom = get_templ(region, sName, ptbin, tagger)
+    _nom = get_templ(region, sName, ptbin, tagger, muon=muon)
     # _nom = th1_to_numpy(path)
 
     # if template is very small don't add unc
     if _nom[0] is None:
         return None
+    if muon:
+        mask = np.ones_like(_nom[0])
     _nom_rate = np.sum(_nom[0] * mask)
     if _nom_rate < 0.1:
         return 1.0
@@ -823,15 +828,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 ),
             }
 
-            #if not args.ftest:
-            templates[siggy] = get_templ(
+            if not args.ftest:
+                templates[siggy] = get_templ(
                     region,
                     short_to_long[siggy],
                     ptbin,
                     tagger,
                     fourptbins=args.four_pt_bins,
                 )
-            templates[bsiggy] = get_templ(
+                templates[bsiggy] = get_templ(
                     region,
                     short_to_long[bsiggy],
                     ptbin,
@@ -839,9 +844,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     fourptbins=args.four_pt_bins,
                 )
             mask = validbins[ptbin].copy()
-
+            
             if args.qcd_ftest:
                 include_samples = ["zqq"]  # qcd here?
+            elif args.ftest:
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb"]
             elif args.h_sensitivity:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb",]
             else:
@@ -852,7 +859,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 templ = templates[sName]
                 logging.debug(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
 
-                if args.qcd_ftest:
+                if args.qcd_ftest or args.ftest:
                     stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
                     # templ[0] = templ[0]*1e-4 #Scale down signal?
                 elif args.h_sensitivity:
@@ -873,7 +880,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         return templ
 
                 ##https://github.com/nsmith-/rhalphalib/blob/master/rhalphalib/template_morph.py#L45-L58 how do i do this on ROOT templates?
-                if args.do_systematics:
+                if 0:#if args.do_systematics:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
                     sample.setParamEffect(
                         sys_lumi_correlated, lumi_correlated_dict_unc[args.year]
@@ -899,19 +906,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         #'scalevar_7pt', 'scalevar_3pt',
                         #'UES','btagEffStat', 'btagWeight',
                     ]
-                    sys_name_updown = {
-                        "JES": ["jesTotaldown", "jesTotalup"],
-                        "JER": ["jerdown", "jerup"],
-                        "pileup_weight": ["pudown", "puup"],
-                        "jet_trigger": ["stat_dn", "stat_up"],
-                        "L1Prefiring": ["L1PreFiringdown", "L1PreFiringup"],
-                        "d1kappa_EW" : ["d1kappa_EW_down", "d1kappa_EW_up"],
-                        "d1K_NLO" : ["d1K_NLO_down", "d1K_NLO_up"],
-                        "d2K_NLO" : ["d2K_NLO_down", "d2K_NLO_up"],
-                        "d3K_NLO" : ["d3K_NLO_down", "d3K_NLO_up"],
-                        "Z_d2kappa_EW" : ["Z_d2kappa_EW_down","Z_d2kappa_EW_up"],
-                        "Z_d3kappa_EW" : ["Z_d3kappa_EW_down","Z_d3kappa_EW_up"],
-                    }
                     if stype == rl.Sample.SIGNAL and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
@@ -1214,12 +1208,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             for sName in include_samples:
                 templ = templates[sName]
                 stype = rl.Sample.BACKGROUND
+                if args.ftest:
+                    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
+
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
                 if args.do_systematics:
-                    sample.setParamEffect(sys_lumi, lumi_dict[year])
-                    sample.setParamEffect(sys_lumi_correlated, lumi_correlated_dict[year])
-                    if year != '2016':
-                        sample.setParamEffect(sys_lumi_1718, lumi_1718_dict[year])
+                    sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
+                    sample.setParamEffect(sys_lumi_correlated, lumi_correlated_dict_unc[args.year])
+                    if args.year != '2016':
+                        sample.setParamEffect(sys_lumi_1718, lumi_1718_dict_unc[args.year])
                     sample.setParamEffect(sys_eleveto, 1.005)
                     sample.setParamEffect(sys_tauveto, 1.005)
 
@@ -1227,9 +1224,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         continue
 
                     sys_names = [
-                        'JES', 'JER', 'UES', 'mu_trigger', 'mu_isoweight', 'mu_idweight', #'btagEffStat', 'btagWeight', 'pileup_weight',
+                        'JES', 'JER', 'mu_trigger', 'mu_idweight', # 'mu_isoweight', #'btagEffStat', 'btagWeight', 'pileup_weight',
                         #'Z_d2kappa_EW', 'Z_d3kappa_EW',  
-                        'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+                        'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',#'UES',
                         'L1Prefiring',
                     ]
 
@@ -1246,9 +1243,10 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 sName,
                                 ptbin,
                                 sys_name_updown[sys_name],
-                                mask,
+                                None,
                                 bound=None if "scalevar" not in sys_name else 0.25,
                                 inflate=True,
+                                muon=True, 
                             )
                             if _sys_ef is None:
                                 continue
