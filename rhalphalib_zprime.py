@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 import sys
 import os
 import rhalphalib as rl
@@ -14,12 +13,30 @@ from array import array
 from rhalphalib import AffineMorphTemplate, MorphHistW2
 import logging
 from rich.logging import RichHandler
+from rich.prompt import Confirm
+from rich.pretty import pprint
 import click
-from common import * 
+from common import lumi_dict, lumi_correlated_dict_unc, lumi_1718_dict_unc, lumi_dict_unc
+import time
+start_time=time.time()
+
+from rich.traceback import install
+install(show_locals=False)
 
 rl.util.install_roofit_helpers()
 # rl.ParametericSample.PreferRooParametricHist = False
 np.random.seed(1)
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+    
 parser = argparse.ArgumentParser(description="Rhalphalib setup.")
 parser.add_argument(
     "--opath", action="store", type=str, required=True, help="Path to store output."
@@ -108,6 +125,18 @@ parser.add_argument("--MCTF", action="store_true", help="Prefit the TF params to
 parser.add_argument(
     "--do_systematics", action="store_true", help="Include systematics."
 )
+# do_systematics = parser.add_mutually_exclusive_group(required=True)
+    # pseudo.add_argument("--data", action="store_false", dest="pseudo")
+    # pseudo.add_argument("--MC", action="store_true", dest="pseudo")
+    # pseudo.add_argument("--toys", action="store_true", dest="toys")
+    # parser.add_argument(
+    #     "--clipx",
+    #     type=str2bool,
+    #     default="True",
+    #     choices={True, False},
+    #     help="Clip x-axis to range of data",
+    # )
+
 parser.add_argument("--is_blinded", action="store_true", help="Run on 10pct dataset.")
 parser.add_argument("--throwPoisson", action="store_true", help="Throw poisson.")
 parser.add_argument(
@@ -142,6 +171,8 @@ log = logging.getLogger("rich")
 
 SF = {
     "2017": {
+        "BB_SF": 1,
+        "BB_SF_ERR": 0.1,
         "V_SF": 0.827,
         "V_SF_ERR": 0.042,
         "SHIFT_SF": 0.417,
@@ -169,15 +200,32 @@ def smass(sName):
     return _mass
 
 
+def flipSF(SF, SF_unc, yield_pass, yield_fail):
+    """
+    Return (SF, SF_unc) for a pass/fail scale factor.
+    """
+    sf = 1 - (yield_pass * (SF - 1) / yield_fail)
+    sfup = 1. - (SF_unc * yield_pass/yield_fail)/sf
+    sfdown = 1/sfup
+    return sf, sfup, sfdown
+
 with open("xsec.json") as f:
     xsec_dict = json.load(f)
 
 short_to_long = {
-    "wqq": "WJetsToQQ",
-    "zqq": "ZJetsToQQ",
-    "tt": "TTbar",
-    "st": "SingleTop",
-    "wlnu": "WJetsToLNu",
+    # "wqq": "WJetsToQQ",
+    # "zqq": "ZJetsToQQ",
+    "wqq": "wqq",
+    "wlnu": "wlnu",
+    "tt": "tt",
+    "st": "tt",
+    "zqq": "zqq",
+    "zbb": "zbb",
+    "hbb": "hbb",    
+    "dy": "dy",
+    # "tt": "TTbar",
+    # "st": "SingleTop",
+    # "wlnu": "WJetsToLNu",
     # "m50": "VectorZPrimeToQQ_M50",
     # "m75": "VectorZPrimeToQQ_M75",
     # "m100": "VectorZPrimeToQQ_M100",
@@ -327,12 +375,12 @@ def plot_mctf(tf_MCtempl, msdbins, name):
     rhopts_scaled = rhopts_scaled[validbins]
 
     tf_MCtempl_vals = tf_MCtempl(ptpts_scaled, rhopts_scaled, nominal=True)
-    # print(tf_MCtempl_vals)
+    # pprint(tf_MCtempl_vals)
     df = pd.DataFrame([])
     df["msd"] = msdpts.reshape(-1)
     df["pt"] = ptpts.reshape(-1)
     df["MCTF"] = tf_MCtempl_vals.reshape(-1)
-    # print(df['MCTF'])
+    # pprint(df['MCTF'])
     fig, ax = plt.subplots()
     h = ax.hist2d(x=df["msd"], y=df["pt"], weights=df["MCTF"], bins=(msdbins, pts))
     plt.xlabel("$m_{sd}$ [GeV]")
@@ -379,7 +427,10 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
     return
 
-
+root_fn_mu = args.root_file_mu
+root_fn = args.root_file
+root_file_mu = uproot.open(root_fn_mu)
+root_file = uproot.open(root_fn)
 def get_templ(
     region,
     sample,
@@ -395,18 +446,15 @@ def get_templ(
 
     if muon:
         hist_str = f"CR1_{sample}_{tagger}_{region}"
-        root_file = args.root_file_mu
     else:
         hist_str = f"SR_{sample}_ptbin{ptbin}_{tagger}_{region}"
-        root_file = args.root_file
-    
     if syst is not None:
         hist_str = hist_str + "__" + syst
-    # print(hist_str)
-    
-    with uproot.open(root_file) as f:
-        # print(f.keys())
-        hist = f[hist_str]
+    if muon:
+        hist = root_file_mu[hist_str]
+    else:
+        hist = root_file[hist_str]
+        
     hist_values = hist.values()
     hist_variances = hist.variances()
     hist_edges = hist.axis().edges()
@@ -415,7 +463,7 @@ def get_templ(
 
     if fourptbins and ptbin == 3:
         with uproot.open(args.root_file) as f:
-            # print(f.keys())
+            # pprint(f.keys())
             hist = f[hist_str.replace("ptbin3", "ptbin4")]
         hist_values += hist.values()
         hist_variances += hist.variances()
@@ -440,7 +488,7 @@ def th1_to_numpy(path, label="msd"):
 def shape_to_num(
     region, sName, ptbin, syst_down_up, mask, muon=False, bound=0.5, inflate=False
 ):
-    # print(sName)
+    # pprint(sName)
 
     _nom = get_templ(region, sName, ptbin, tagger, muon=muon)
     # _nom = th1_to_numpy(path)
@@ -477,8 +525,8 @@ def shape_to_num(
         elif _down[0] is not None and _up[0] is not None:
             _up_rate = np.sum(_up[0] * mask)
             _down_rate = np.sum(_down[0] * mask)
-            # print("_up_rate",_up_rate)
-            # print("_down_rate",_down_rate)
+            # pprint("_up_rate",_up_rate)
+            # pprint("_down_rate",_down_rate)
             _diff = np.abs(_up_rate - _nom_rate) + np.abs(_down_rate - _nom_rate)
             magnitude = _diff / (2.0 * _nom_rate)
         else:
@@ -488,7 +536,7 @@ def shape_to_num(
     # inflate uncs while debugging what went wrong
     if inflate:
         magnitude *= 10
-    # print(magnitude)
+    # pprint(magnitude)
     return 1.0 + magnitude
 
 
@@ -539,7 +587,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_muveto = rl.NuisanceParameter("CMS_m_veto_{}".format(args.year), "lnN")
     sys_tauveto = rl.NuisanceParameter("CMS_tau_veto_{}".format(args.year), "lnN")
 
-    sys_veff = rl.NuisanceParameter("CMS_veff_{}".format(args.year), "lnN")
+    sys_veff = rl.NuisanceParameter("CMS_PNet_2prong_{}".format(args.year), "lnN")
+    sys_bbeff = rl.NuisanceParameter("CMS_PNet_bb_{}".format(args.year), "lnN")
 
     sys_lumi = rl.NuisanceParameter("CMS_lumi", "lnN")
     sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
@@ -606,7 +655,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     for qcdmodel, qcdpass, qcdfail, rpass, rfail in zip(
         qcdmodels, qcd_counts_pass, qcd_counts_fail, pass_regs, fail_regs
     ):
-        print(qcdmodel, qcdpass, qcdfail, rpass, rfail) 
         for ptbin in range(npt):
             failCh = rl.Channel("ptbin%d%s" % (ptbin, "fail"))
             passCh = rl.Channel("ptbin%d%s" % (ptbin, "pass"))
@@ -857,7 +905,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             for sName in include_samples:
                 # some mock expectations
                 templ = templates[sName]
-                logging.debug(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
+                logging.info(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
 
                 if args.qcd_ftest or args.ftest:
                     stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
@@ -866,15 +914,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     stype = rl.Sample.SIGNAL if sName == "hbb" else rl.Sample.BACKGROUND
                 else:
                     stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy] else rl.Sample.BACKGROUND
-                sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
+                sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
 
                 def smorph(templ, sName):
                     if templ is None:
                         return None
                     if sName not in ["qcd", "dy", "wlnu", "tt", "st"]:
                         return MorphHistW2(templ).get(
-                            shift=SF[year]['shift_SF']/smass('wqq') * smass(sName),
-                            smear=SF[year]['smear_SF']
+                            shift=SF[args.year]['shift_SF']/smass('wqq') * smass(sName),
+                            smear=SF[args.year]['smear_SF']
                         )
                     else:
                         return templ
@@ -903,12 +951,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         "L1Prefiring",
                         #'Z_d2kappa_EW', 'Z_d3kappa_EW', 
                         'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+                        
                         #'scalevar_7pt', 'scalevar_3pt',
                         #'UES','btagEffStat', 'btagWeight',
                     ]
                     if stype == rl.Sample.SIGNAL and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
+                        logging.debug(f"  Adding systematic: '{sys_name}'")
                         if (
                             ("NLO" in sys_name) or ("EW" in sys_name)
                         ) and not sName in ["zqq", "wqq"]:
@@ -927,24 +977,10 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             )
                             if _sys_ef is None:
                                 continue
+                            
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
-
-                    if sName not in [
-                        "qcd",
-                        "dy",
-                        "wlnu",
-                        "tt",
-                        "st",
-                    ]:
-                        sample.scale(SF[args.year]["V_SF"])
-                        sample.setParamEffect(
-                            sys_veff,
-                            1.0 + SF[args.year]["V_SF_ERR"] / SF[args.year]["V_SF"],
-                        )
-                    ###SFs complicated by high-purity bb region...fully insitu using Zbb?
-
                 else:
-                    sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
+                    sample.setParamEffect(sys_lumi, 1.1)
 
                 ch.addSample(sample)
 
@@ -960,17 +996,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     include_samples = ["QCD"]
                 elif args.h_sensitivity:
                     include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb","QCD"]
-                print(include_samples)
                 for sName in include_samples:
                     _sample = get_templ(
                         region, sName, ptbin, tagger, fourptbins=args.four_pt_bins
                     )
                     _sample_yield = _sample[0]
                     if args.scale_qcd:
-                        print(sName, region)
                         if "pass" in region:
                             dummyqcd = rl.TemplateSample(
-                                "dummyqcd", rl.Sample.BACKGROUND, _sample
+                                "dummyqcd", rl.Sample.BACKGROUND, _sample, force_positive=True
                             )
                             nomrate = dummyqcd._nominal
                             downrate = np.sum(
@@ -994,7 +1028,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             elif args.highbvl:
                                 scale = 5.5  # 1./np.sqrt(scale)
                             scale_pass.append(scale)
-                            print(
+                            pprint(
                                 "qcdscale needed to match mcstat uncs: using poisson:",
                                 scale,
                             )
@@ -1005,7 +1039,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     else:
                         yields.append(_sample_yield)
                 yields = np.sum(np.array(yields), axis=0)
-                print("ptbin/region", ptbin, region, yields)
+                pprint("ptbin/region", ptbin, region, yields)
                 if throwPoisson:
                     yields = np.random.poisson(yields)
 
@@ -1017,6 +1051,77 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             # validbins[ptbin][0:2] = False
             mask = validbins[ptbin]
             ch.mask = mask
+        
+    # Systematics    
+    # ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
+    if args.do_systematics:
+        # Do 2-region SFs
+        for ptbin in range(npt):
+            ch_pass = model[f"ptbin{ptbin}passhighbvl"]
+            ch_fail = model[f"ptbin{ptbin}passlowbvl"]
+            for sName in ["zbb", "hbb", bsiggy]:
+                sample_pass = ch_pass[f"{sName}"]
+                sample_fail = ch_fail[f"{sName}"]
+
+                template_pass_pass = get_templ(
+                        "pass_highbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                template_pass_fail = get_templ(
+                        "pass_lowbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                yield_pass = template_pass_pass[0].sum()
+                yield_fail = template_pass_fail[0].sum()
+                
+                for sf, unc in zip([SF[args.year]['BB_SF']], [SF[args.year]['BB_SF_ERR']]):                      
+                    sfunc = 1. + unc / sf
+                    # Scale pass   
+                    sample_pass.scale(sf)                
+                    sample_pass.setParamEffect(sys_bbeff, sfunc)
+                    
+                    # Scale fail
+                    sf_flipped, sfup, sfdn = flipSF(sf, unc, yield_pass, yield_fail)
+                    sample_fail.scale(sf_flipped)                
+                    sample_fail.setParamEffect(sys_bbeff, sfup, sfdn)
+                    logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf}, sfunc_nominal: {unc}, card_unc: {sfunc}/{1/sfunc:.3f}")
+                    logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped}, sfunc_nominal: {unc}, card_unc: {sfup}/{sfdn:.3f}")
+                
+        # Do 3-region SFs
+        for ptbin in range(npt):
+            ch_fail = model[f"ptbin{ptbin}fail"]
+            ch_pass_pass = model[f"ptbin{ptbin}passhighbvl"]
+            ch_pass_fail = model[f"ptbin{ptbin}passlowbvl"]
+            for sName in ["wqq", "zqq", "zbb", "hbb", siggy, bsiggy]:  # consider tt/st
+                sample_fail = ch_fail[f"{sName}"]
+                sample_pass_pass = ch_pass_pass[f"{sName}"]
+                sample_pass_fail = ch_pass_fail[f"{sName}"]
+                template_pass_pass = get_templ(
+                        "pass_highbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                template_pass_fail = get_templ(
+                        "pass_lowbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                template_fail = get_templ(
+                        "fail", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                yield_pass_pass = template_pass_pass[0].sum()
+                yield_pass_fail = template_pass_fail[0].sum()
+                yield_fail = template_fail[0].sum()
+                
+                for sf, unc in zip([SF[args.year]['V_SF']], [SF[args.year]['V_SF_ERR']]):                      
+                    sfunc = 1. + unc / sf
+                    # Scale both pass regions            
+                    sample_pass_pass.scale(sf)                
+                    sample_pass_pass.setParamEffect(sys_veff, sfunc)
+                    sample_pass_fail.scale(sf)                
+                    sample_pass_fail.setParamEffect(sys_veff, sfunc)
+                    # Scale fail
+                    sf_flipped, sfup, sfdn = flipSF(sf, unc, yield_pass_pass+yield_pass_fail, yield_fail)
+                    sample_fail.scale(sf_flipped)                
+                    sample_fail.setParamEffect(sys_veff, sfup, sfdn)
+                    
+                    logging.debug(f"  Nuisance: '{sys_veff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{1/sfunc:.3f}")
+                    logging.debug(f"  Nuisance: '{sys_veff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfup:.3f}/{sfdn:.3f}")
+                
 
     ###################################
     # Build QCD TF temples
@@ -1090,7 +1195,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             initial_qcd = failCh.getObservation().astype(
                 float
             )  # was integer, and numpy complained about subtracting float from it
-            print(initial_qcd)
+            pprint(initial_qcd)
             #log.debug("Initial_qcd", initial_qcd)
             for sample in failCh:
                 initial_qcd -= sample.getExpectation(nominal=True)
@@ -1262,7 +1367,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             )
             ch.setObservation(data_obs[0:3])
         if args.tworeg:
-            
             tqqpass_highbvl = model[f"muonCR{pass_regs[0].replace('_','')}"]["tt"]
             tqqpass_lowbvl  = model[f"muonCR{pass_regs[1].replace('_','')}"]["tt"]
             tqqfail         = model[f"muonCR{fail_regs[0].replace('_','')}"]["tt"]
@@ -1313,7 +1417,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
     conf_dict = vars(args)
     conf_dict["nbins"] = float(np.sum(validbins))
-    print(conf_dict)
+    pprint(conf_dict)
     import json
 
     # Serialize data into file:
@@ -1332,19 +1436,22 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
 
 if __name__ == "__main__":
-    from rich.prompt import Prompt, Confirm
-
+    import time
+    start_time = time.time()
     global opath
     startopath = f"{args.opath}/{tagger}/ipt{args.ipt}_irho{args.irho}"
     os.system(f"cp rhalphalib_zprime.py {startopath}/rhalphalib_zprime.py")
     for sig in signals:
         opath = f"{startopath}/{sig}/"
         if os.path.exists(opath):
-            q_overwrite = Confirm.ask(f"Path: {opath} exists. Overwrite?")
+            q_overwrite = Confirm.ask(f"Path: '{opath}' already exists. Overwrite?")
             if not q_overwrite:
-                print(f"Remove with \nrm -rf {opath}")
+                pprint(f"Remove with \nrm -rf {opath}")
                 sys.exit()
             else:
                 os.system(f"rm -rf {opath}")
         os.makedirs(opath)
         test_rhalphabet(opath, sig, args.throwPoisson)
+
+    elapsed = time.time() - start_time
+    pprint(f"Walltime: {time.strftime('%H:%M:%S', time.gmtime(elapsed))}")
