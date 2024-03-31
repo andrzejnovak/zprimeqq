@@ -16,7 +16,7 @@ from rich.logging import RichHandler
 from rich.prompt import Confirm
 from rich.pretty import pprint
 import click
-from common import lumi_dict, lumi_correlated_dict_unc, lumi_1718_dict_unc, lumi_dict_unc
+from common import sys_name_updown, lumi_dict, lumi_correlated_dict_unc, lumi_1718_dict_unc, lumi_dict_unc
 import time
 start_time=time.time()
 
@@ -124,6 +124,9 @@ parser.add_argument(
 parser.add_argument("--MCTF", action="store_true", help="Prefit the TF params to MC.")
 parser.add_argument(
     "--do_systematics", action="store_true", help="Include systematics."
+)
+parser.add_argument(
+    "--do_systematics_mu", action="store_true", help="Include systematics."
 )
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
     # pseudo.add_argument("--data", action="store_false", dest="pseudo")
@@ -470,7 +473,7 @@ def get_templ(
 
     if np.any(hist_values < 0.0):
         hist_values [hist_values < 0.0] = 0.
-        log.info(f"Some negative values in region={region}, sample={sample}, ptbin={ptbin} template; setting those to zero")
+        log.info(f"Some negative values in region={region}, sample={sample}, ptbin={ptbin}, syst={syst}, muon={muon} template; setting those to zero")
     if muon:
         hist_key = "msd_muon"
     else:
@@ -928,7 +931,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         return templ
 
                 ##https://github.com/nsmith-/rhalphalib/blob/master/rhalphalib/template_morph.py#L45-L58 how do i do this on ROOT templates?
-                if 0:#if args.do_systematics:
+                if args.do_systematics:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
                     sample.setParamEffect(
                         sys_lumi_correlated, lumi_correlated_dict_unc[args.year]
@@ -1309,15 +1312,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     ),
             }
     
-            include_samples = ["wqq", "zqq", "tt", "wlnu", "dy", "st", "qcd"]
+            include_samples = ["wqq", "zqq", "tt", "wlnu", "dy", "st", "qcd"] 
             for sName in include_samples:
                 templ = templates[sName]
                 stype = rl.Sample.BACKGROUND
                 if args.ftest:
                     stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
 
-                sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ)
-                if args.do_systematics:
+                sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
+                if args.do_systematics_mu:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
                     sample.setParamEffect(sys_lumi_correlated, lumi_correlated_dict_unc[args.year])
                     if args.year != '2016':
@@ -1346,7 +1349,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             _sys_ef = shape_to_num(
                                 region,
                                 sName,
-                                ptbin,
+                                0,
                                 sys_name_updown[sys_name],
                                 None,
                                 bound=None if "scalevar" not in sys_name else 0.25,
