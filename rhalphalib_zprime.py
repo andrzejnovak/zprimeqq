@@ -445,6 +445,7 @@ def get_templ(
     year="2017",
     scaledown=False,
     fourptbins=False,
+    observable=None,
 ):
 
     if muon:
@@ -471,9 +472,22 @@ def get_templ(
         hist_values += hist.values()
         hist_variances += hist.variances()
 
+    if np.any(~np.isfinite(hist_values) < 0.0):
+        _invalid = ~np.isfinite(hist_values)
+        hist_values[ _invalid ] = 0.
+        hist_variances[ _invalid ] = 0.
+        log.warning(f"Some invalid values in region={region}, sample={sample}, ptbin={ptbin}, syst={syst}, muon={muon} template; setting those to zero")
     if np.any(hist_values < 0.0):
-        hist_values [hist_values < 0.0] = 0.
-        log.info(f"Some negative values in region={region}, sample={sample}, ptbin={ptbin}, syst={syst}, muon={muon} template; setting those to zero")
+        _invalid = hist_values < 0.
+        hist_values[ _invalid ] = 0.
+        hist_variances[ _invalid ] = 0.
+        log.warning(f"Some negative values in region={region}, sample={sample}, ptbin={ptbin}, syst={syst}, muon={muon} template; setting those to zero")
+    if observable is not None:
+        if observable.nbins != len(hist_values): #hotfix for muon nbins issue differing in pass/fail
+            log.warning(f"Observable {observable.name} has nbins = {observable.nbins}, whereas provided array has {len(hist_values)}")
+            hist_values = hist_values[:observable.nbins]
+            hist_edges = hist_edges[:observable.nbins+1]
+            hist_variances = hist_variances[:observable.nbins] 
     if muon:
         hist_key = "msd_muon"
     else:
@@ -1290,29 +1304,29 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     
             templates = {
                     "tt": get_templ(
-                        region, "tt", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "tt", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
                     "st": get_templ(
-                        region, "st", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "st", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
                     "qcd": get_templ(
-                        region, "QCD", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "QCD", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
                     "wlnu": get_templ(
-                        region, "wlnu", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "wlnu", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
                     "dy": get_templ(
-                        region, "dy", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                        region, "dy", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
-                    "wqq": get_templ(
-                        region, "wqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
-                    ),
-                    "zqq": get_templ(
-                        region, "zqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
-                    ),
+                    #"wqq": get_templ(
+                    #    region, "wqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                    #),
+                    #"zqq": get_templ(
+                    #    region, "zqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                    #),
             }
     
-            include_samples = ["wqq", "zqq", "tt", "wlnu", "dy", "st", "qcd"] 
+            include_samples = ["tt", "wlnu", "dy", "st", "qcd"] 
             for sName in include_samples:
                 templ = templates[sName]
                 stype = rl.Sample.BACKGROUND
@@ -1320,7 +1334,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
 
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
-                if args.do_systematics_mu:
+                if args.do_systematics:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
                     sample.setParamEffect(sys_lumi_correlated, lumi_correlated_dict_unc[args.year])
                     if args.year != '2016':
@@ -1366,7 +1380,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     
             
             data_obs = get_templ(
-                    region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
+                    region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon,
             )
             ch.setObservation(data_obs[0:3])
         if args.tworeg:
