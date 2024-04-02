@@ -10,6 +10,7 @@ if __name__ == '__main__':
     parser.add_argument('--opath', required=True,type=str,)
     parser.add_argument('--outplots', default="Ftests/plots")
     parser.add_argument('--root_file', required=True, type=str, help="Path to ROOT files containing templates")
+    parser.add_argument('--root_file_mu', required=False, type=str, help="Path to ROOT files containing templates")
 
     parser_mc = parser.add_mutually_exclusive_group(required=True)
     parser_mc.add_argument('--data', action='store_false', dest='mc')
@@ -68,7 +69,7 @@ if __name__ == '__main__':
                     ) 
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {args.root_file_mu} --muonCR "
                         #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muonCR "
                         + (" --is_blinded " if args.is_blinded else "")
                         + (" --highbvl" if args.highbvl else "") 

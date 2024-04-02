@@ -696,7 +696,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         pass_regs = ["pass_highbvl", "pass_lowbvl"]
         fail_regs = ["fail", "fail"]
  
-        if args.qcd_ftest:
+        if args.qcd_ftest or args.ftest:
             if args.highbvl:
                 qcdmodels, qcd_counts_pass, qcd_counts_fail, pass_regs, fail_regs = qcdmodels[0:1], qcd_counts_pass[0:1], qcd_counts_fail[0:1], pass_regs[0:1], fail_regs[0:1]
             elif args.lowbvl:
@@ -957,10 +957,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             
             if args.qcd_ftest:
                 include_samples = ["zqq"]  # qcd here?
-            elif args.ftest:
+            elif args.ftest or args.h_sensitivity:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb"]
-            elif args.h_sensitivity:
-                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb",]
             else:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
 
@@ -1134,12 +1132,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         
     # Systematics    
     # ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
-    if args.do_systematics:
+    if args.do_systematics and not args.ftest:
         # Do 2-region SFs
         for ptbin in range(npt):
             ch_pass = model[f"ptbin{ptbin}passhighbvl"]
             ch_fail = model[f"ptbin{ptbin}passlowbvl"]
-            for sName in ["zbb", "hbb", bsiggy]:
+            bb_samples = ["zbb", "hbb",]
+            if not args.ftest: bb_samples += [bsiggy]
+            for sName in bb_samples:
                 sample_pass = ch_pass[f"{sName}"]
                 sample_fail = ch_fail[f"{sName}"]
 
@@ -1164,13 +1164,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     sample_fail.setParamEffect(sys_bbeff, sfup, sfdn)
                     logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf}, sfunc_nominal: {unc}, card_unc: {sfunc}/{1/sfunc:.3f}")
                     logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped}, sfunc_nominal: {unc}, card_unc: {sfup}/{sfdn:.3f}")
-                
+    if args.do_systematics and not args.ftest:        
         # Do 3-region SFs
         for ptbin in range(npt):
             ch_fail = model[f"ptbin{ptbin}fail"]
             ch_pass_pass = model[f"ptbin{ptbin}passhighbvl"]
             ch_pass_fail = model[f"ptbin{ptbin}passlowbvl"]
-            for sName in ["wqq", "zqq", "zbb", "hbb", siggy, bsiggy]:  # consider tt/st
+            qq_samples = ["wqq", "zqq", "zbb", "hbb",]
+            if not args.ftest: qq_samples += [ siggy, bsiggy] 
+            for sName in qq_samples:  # consider tt/st
                 sample_fail = ch_fail[f"{sName}"]
                 sample_pass_pass = ch_pass_pass[f"{sName}"]
                 sample_pass_fail = ch_pass_fail[f"{sName}"]
@@ -1201,12 +1203,44 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     
                     logging.debug(f"  Nuisance: '{sys_veff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{1/sfunc:.3f}")
                     logging.debug(f"  Nuisance: '{sys_veff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfup:.3f}/{sfdn:.3f}")
-                
+    elif args.do_systematics and args.ftest:
+        for ptbin in range(npt):
+            passkey = f"ptbin{ptbin}pass"
+            if args.highbvl:
+                passkey = f"ptbin{ptbin}passhighbvl"
+                histkey = "pass_highbvl"
+            elif args.lowbvl:
+                passkey = f"ptbin{ptbin}passlowbvl"
+                histkey = "pass_lowbvl"
+            failkey = f"ptbin{ptbin}fail"
+            ch_fail = model[failkey]
+            ch_pass = model[passkey]
+            qq_samples = ["wqq", "zqq", "zbb", "hbb",] 
+            for sName in qq_samples:  
+                sample_fail = ch_fail[f"{sName}"]
+                sample_pass = ch_pass[f"{sName}"]
+                template_pass = get_templ(
+                        histkey, short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                template_fail = get_templ(
+                        "fail", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                )
+                yield_pass = template_pass[0].sum()
+                yield_fail = template_fail[0].sum()
+                for sf, unc in zip([SF[args.year]['V_SF']], [SF[args.year]['V_SF_ERR']]):                      
+                    sfunc = 1. + unc / sf
+                    # Scale both pass regions            
+                    sample_pass.scale(sf)                
+                    sample_pass.setParamEffect(sys_veff, sfunc)
+                    # Scale fail
+                    sf_flipped, sfup, sfdn = flipSF(sf, unc, yield_pass, yield_fail)
+                    sample_fail.scale(sf_flipped)                
+                    sample_fail.setParamEffect(sys_veff, sfup, sfdn)
 
-    ###################################
+
     # Build QCD TF temples
     log.info("Building QCD TF templates")    
-    if args.tworeg and not args.qcd_ftest:
+    if args.tworeg and not (args.qcd_ftest or args.ftest):
         for ptbin in range(npt):
             failCh = model[f"ptbin{ptbin}fail"]
             passChpass = model[f"ptbin{ptbin}passhighbvl"]
@@ -1302,7 +1336,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             passCh.addSample(pass_qcd)
 
     if args.muonCR:
-        if args.tworeg:
+        if args.tworeg and not args.ftest:
             for ptbin in range(npt):
                 failCh = model[f"ptbin{ptbin}{fail_regs[0].replace('_','')}"]
                 passCh_highbvl = model[f"ptbin{ptbin}{pass_regs[0].replace('_','')}"]
@@ -1337,13 +1371,18 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 stqqfail        .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
                 stqqfail        .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
         else:
+            passkey = f"ptbin{ptbin}pass"
+            if args.highbvl:
+                passkey = f"ptbin{ptbin}passhighbvl"
+            elif args.lowbvl:
+                passkey = f"ptbin{ptbin}passlowbvl"
             for ptbin in range(npt):
-                failCh = model['ptbin{}fail{}'.format(ptbin, year)]
-                passCh = model['ptbin{}pass{}'.format(ptbin, year)]
-                tqqpass = passCh['tqq']
-                tqqfail = failCh['tqq']
-                stqqpass = passCh['stqq']
-                stqqfail = failCh['stqq']
+                failCh = model[f'ptbin{ptbin}fail']
+                passCh = model[passkey]
+                tqqpass = passCh['tt']
+                tqqfail = failCh['tt']
+                stqqpass = passCh['st']
+                stqqfail = failCh['st']
                 sumPass = tqqpass.getExpectation(nominal=True).sum()
                 sumFail = tqqfail.getExpectation(nominal=True).sum()
                 sumPass += stqqpass.getExpectation(nominal=True).sum()
@@ -1393,8 +1432,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             for sName in include_samples:
                 templ = templates[sName]
                 stype = rl.Sample.BACKGROUND
-                if args.ftest:
-                    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
 
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
                 if args.do_systematics:
@@ -1446,7 +1483,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon,
             )
             ch.setObservation(data_obs[0:3])
-        if args.tworeg:
+        if args.tworeg and not args.ftest:
             tqqpass_highbvl = model[f"muonCR{pass_regs[0].replace('_','')}"]["tt"]
             tqqpass_lowbvl  = model[f"muonCR{pass_regs[1].replace('_','')}"]["tt"]
             tqqfail         = model[f"muonCR{fail_regs[0].replace('_','')}"]["tt"]
@@ -1476,9 +1513,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             stqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
 
         else: 
-            tqqpass = model["muonCRpass"]["tt"]
+            passkey = f"ptbin{ptbin}pass"
+            if args.highbvl:
+                passkey = f"ptbin{ptbin}passhighbvl"
+            elif args.lowbvl:
+                passkey = f"ptbin{ptbin}passlowbvl"
+            tqqpass = model[passkey]["tt"]
             tqqfail = model["muonCRfail"]["tt"]
-            stqqpass = model["muonCRpass"]["st"]
+            stqqpass = model[passkey]["st"]
             stqqfail = model["muonCRfail"]["st"]
             tqqPF = (tqqpass.getExpectation(nominal=True).sum() + stqqpass.getExpectation(nominal=True).sum())/ ( tqqfail.getExpectation(nominal=True).sum() + tqqfail.getExpectation(nominal=True).sum())
             tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
