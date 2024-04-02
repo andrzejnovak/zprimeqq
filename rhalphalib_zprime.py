@@ -18,6 +18,7 @@ from rich.pretty import pprint
 import click
 from common import sys_name_updown, lumi_dict, lumi_correlated_dict_unc, lumi_1718_dict_unc, lumi_dict_unc
 import time
+from copy import deepcopy
 start_time=time.time()
 
 from rich.traceback import install
@@ -173,6 +174,27 @@ log = logging.getLogger("rich")
 
 
 SF = {
+
+    "2016APV": {
+        "BB_SF": 1,
+        "BB_SF_ERR": 0.1,
+        "V_SF": 0.799,
+        "V_SF_ERR": 0.060,
+        "SHIFT_SF": -0.350,
+        "SHIFT_SF_ERR": 0.475,
+        "SMEAR_SF": 1.099,
+        "SMEAR_SF_ERR":0.057,
+    },
+    "2016": {
+        "BB_SF": 1,
+        "BB_SF_ERR": 0.1,
+        "V_SF": 0.735,
+        "V_SF_ERR": 0.061,
+        "SHIFT_SF": -0.560,
+        "SHIFT_SF_ERR": 0.384,
+        "SMEAR_SF": 1.117,
+        "SMEAR_SF_ERR":0.046,
+    },
     "2017": {
         "BB_SF": 1,
         "BB_SF_ERR": 0.1,
@@ -182,9 +204,28 @@ SF = {
         "SHIFT_SF_ERR": 0.395,
         "SMEAR_SF": 1.011,
         "SMEAR_SF_ERR":0.024,
-    }
+    },
+    "2018": {
+        "BB_SF": 1,
+        "BB_SF_ERR": 0.1,
+        "V_SF": 0.770,
+        "V_SF_ERR": 0.034,
+        "SHIFT_SF": -0.504,
+        "SHIFT_SF_ERR": 0.117,
+        "SMEAR_SF": 1.034,
+        "SMEAR_SF_ERR":0.026,
+    },
 }
 tagger = args.tagger
+
+def badtemp_ma(hvalues, eps=0.0000001, mask=None):
+    # Need minimum size & more than 1 non-zero bins
+    tot = np.sum(hvalues[mask])
+    count_nonzeros = np.sum(hvalues[mask] > 0)
+    if (tot < eps) or (count_nonzeros < 3):
+        return True
+    else:
+        return False
 
 def smass(sName):
     if "hbb" in sName:
@@ -197,7 +238,8 @@ def smass(sName):
         _mass = 80.0
     elif sName in ["zqq", "zcc", "zbb"]:
         _mass = 90.0
-    
+    elif "150" in sName:
+        _mass = 150.0
     else:
         raise ValueError("DAFUQ is {}".format(sName))
     return _mass
@@ -611,6 +653,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
     sys_lumi_1718 = rl.NuisanceParameter("CMS_lumi_13TeV_1718", "lnN")
 
+    sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
+    sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
+
     tqqeffSF = rl.IndependentParameter("tqqeffSF", 1.0, 0, 10)
     tqqnormSF = rl.IndependentParameter("tqqnormSF", 1.0, 0, 10)
     tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl", 1.0, 0, 10)
@@ -938,12 +983,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         return None
                     if sName not in ["qcd", "dy", "wlnu", "tt", "st"]:
                         return MorphHistW2(templ).get(
-                            shift=SF[args.year]['shift_SF']/smass('wqq') * smass(sName),
-                            smear=SF[args.year]['smear_SF']
+                            shift=SF[args.year]['SHIFT_SF']/smass('wqq') * smass(sName),
+                            smear=SF[args.year]['SMEAR_SF']
                         )
                     else:
                         return templ
-
+                templ = smorph(templ, sName)
                 ##https://github.com/nsmith-/rhalphalib/blob/master/rhalphalib/template_morph.py#L45-L58 how do i do this on ROOT templates?
                 if args.do_systematics:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
@@ -996,6 +1041,24 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 continue
                             
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
+                    mtempl = AffineMorphTemplate(templ)
+                    _extra_scaling = 4.
+                    if sName not in ['qcd', 'dy', 'wlnu',"tt","st",]:
+                        log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
+                        realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName)
+                        _up = mtempl.get(shift=realshift)
+                        _down = mtempl.get(shift=-realshift)
+                        #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
+                        #    log.info("Skipping sample {}, scale systematic would be empty".format(sName))
+                        #    continue
+                        sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling) 
+                        _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
+                        _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
+                        #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
+                        #    log.info("Skipping sample {}, smear systematic would be empty".format(sName))
+                        #    continue
+                        sample.setParamEffect(sys_smear, _up, _down, scale=1/_extra_scaling) 
+
                 else:
                     sample.setParamEffect(sys_lumi, 1.1)
 
