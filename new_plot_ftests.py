@@ -85,7 +85,7 @@ def fplot(fvals, f_data, ref, alt, year=2017, nbins=130, savename=None, mc=False
     x = np.linspace(0, x_lim, 200)
     bins = np.linspace(0, x_lim, 30)
     width = bins[1]-bins[0]
-    
+    print("fvals",fvals) 
     goodvals = fvals[fvals > 0]
 
     fig, ax = plt.subplots()
@@ -94,6 +94,9 @@ def fplot(fvals, f_data, ref, alt, year=2017, nbins=130, savename=None, mc=False
         ax.plot(x, len(goodvals)*width*f.pdf(x, p2-p1, nbins-p2), color='red', label='F-dist, ndf({},{})'.format(p2-p1, nbins-p2))
     ax.hist(fvals, bins, facecolor='none', edgecolor='black', histtype='stepfilled', lw=2,
             label="Toys > 0, N = {}".format(len(goodvals)));
+ 
+
+    print("goodvals",goodvals)
     ax.hist(goodvals[goodvals > f_data], bins, facecolor='steelblue', edgecolor='gray', histtype='stepfilled', alpha=0.3,
             label='p-value = {}'.format(round(float(len(goodvals[goodvals > f_data]))/len(goodvals), 3)));
     ax.annotate("", xy=(f_data, 0), xycoords=trans,
@@ -126,14 +129,14 @@ def prep_data(infile, reg, mc,year, lowbvl=False, highbvl=False):
     #print("key",'shapes_prefit/{}/{}_qcd'.format(reg,year))
     prefit_qcd = infile['shapes_prefit/{}/{}_qcd'.format(reg,year)].values()
     prefit_qcd_err = infile['shapes_prefit/{}/total_background'.format(reg,)].variances()
-    postfit_qcd = infile['shapes_fit_s/{}/{}_qcd'.format(reg,year)].values()
-    postfit_qcd_err = infile['shapes_fit_s/{}/total_background'.format(reg,)].variances()
-    data = infile['shapes_fit_s/{}/data'.format(reg)].values()
-    data_err = infile['shapes_fit_s/{}/data'.format(reg)].errors(which="mean")
+    postfit_qcd = infile['shapes_fit_b/{}/{}_qcd'.format(reg,year)].values()
+    postfit_qcd_err = infile['shapes_fit_b/{}/total_background'.format(reg,)].variances()
+    data = infile['shapes_fit_b/{}/data'.format(reg)].values()
+    data_err = infile['shapes_fit_b/{}/data'.format(reg)].errors(which="mean")
  
     #print(data)
     bins = infile['shapes_prefit/{}/{}_qcd'.format(reg,year)].axis().edges()
-    centers = infile['shapes_fit_s/{}/{}_qcd'.format(reg,year)].axis().centers()
+    centers = infile['shapes_fit_b/{}/{}_qcd'.format(reg,year)].axis().centers()
     return data, prefit_qcd, postfit_qcd, bins, centers, prefit_qcd_err, postfit_qcd_err, data_err
 
 
@@ -258,6 +261,9 @@ if __name__ == "__main__":
     savepath = os.path.join(args.outdir, "fplot_gofs_{}{}_{}{}".format(ref_pt, ref_rho, alt_pt, alt_rho))
     fgofs(gofs_base, gofs_alt, data_ref, data_alt, (ref_pt, ref_rho), (alt_pt, alt_rho), mc=args.mc, year=args.year, savename=savepath)
 
+    print("gofs_base",gofs_base)
+    print("gofs_alt",gofs_alt)
+    print("p1",p1,"p2",p2,"args.nbins",args.nbins)
     f_vals = fval(gofs_base, gofs_alt, p1, p2, args.nbins)
     f_ref = fval(data_ref, data_alt, p1, p2, args.nbins)
 

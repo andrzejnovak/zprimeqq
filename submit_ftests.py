@@ -62,7 +62,7 @@ if __name__ == '__main__':
                 ###I don't need just MC templates?
                 if args.mc:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd "
+                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd --root_file_mu {args.root_file_mu} "
                         + (" --highbvl" if args.highbvl else "") 
                         + (" --lowbvl" if args.lowbvl else "")
                         + (" --tworeg" if args.tworeg else "") 

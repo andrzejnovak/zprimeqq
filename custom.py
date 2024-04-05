@@ -29,14 +29,14 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
     debug = args.debug
     if mc:
         #overall_conf = f" --setParameters r=0 --freezeParameters r --expectSignal=0 --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
-        overall_conf = f" --expectSignal=0 "# --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
-        overall_conf += f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "
+        overall_conf = f" --expectSignal=0 --setParameters r=0 --freezeParameters r "# --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "
+        #overall_conf += f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "
         #elif args.highbvl:
         #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_1_*}}' --redefineSignalPOIs tf{year}_dataResidual_0_pt_par0_rho_par0".format(year=args.year)
         #elif args.lowbvl:
         #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_0_*}}' --redefineSignalPOIs tf{year}_dataResidual_1_pt_par0_rho_par0".format(year=args.year)
     else:
-        overall_conf = f" --expectSignal=0 --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 "  
+        overall_conf = f" " # --expectSignal=0 --freezeParameters r --setParameters r=0 --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "# --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "  
         #overall_conf = f" --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 --toysFrequentist "  
         #overall_conf = " --setParameters r=1 --toysFrequentist --freezeParameters r --setParameterRanges r=-10,10 "
         #overall_conf = " --setParameters r=1,z=1  --toysFrequentist --freezeParameters r,z --setParameterRanges r=-10,10:z=0.95,1.05 "
@@ -66,8 +66,10 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
     if base:
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
-            " -n .BaseFit  --saveWorkspace --saveFitResult"
+            " -n .BaseFit  --saveWorkspace --saveFitResult "
+            " --setParameterRanges r=-5,5 " 
             " -d {}".format(ws_base) + overall_conf)
+
         if args.condor:
             command += CONDOR_str.format("basemultifit")
     
@@ -75,6 +77,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .AltFit  --saveWorkspace --saveFitResult"
+            " --setParameterRanges r=-5,5 " 
             " -d {}".format(ws_alt) + overall_conf)
         if args.condor:
             command += CONDOR_str.format("altmultifit")
@@ -84,6 +87,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Base  --saveWorkspace --saveShapes " #--SaveWithUncertainties"
+            " --skipSBFit "
             " -d {}".format(ws_base) + overall_conf)
         if args.condor:
             command += CONDOR_str.format("basefitdiag")
@@ -92,6 +96,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         command = (
             "combineTool.py -M FitDiagnostics --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .Alt  --saveWorkspace --saveShapes "#--saveWithUncertainties"
+            " --skipSBFit "
             " -d {}".format(ws_alt) + overall_conf)
         if args.condor:
             command += CONDOR_str.format("altfitdiag")

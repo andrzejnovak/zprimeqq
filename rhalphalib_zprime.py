@@ -238,8 +238,14 @@ def smass(sName):
         _mass = 80.0
     elif sName in ["zqq", "zcc", "zbb"]:
         _mass = 90.0
-    elif "150" in sName:
-        _mass = 150.0
+    elif sName in ["m"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("m")[1])
+    elif sName in ["zpqq"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("zpqq")[1])
+    elif sName in ["zpbb"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("zpbb")[1])
+    elif sName in ["b"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("b")[1])
     else:
         raise ValueError("DAFUQ is {}".format(sName))
     return _mass
@@ -474,6 +480,7 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
 root_fn_mu = args.root_file_mu
 root_fn = args.root_file
+print(root_fn_mu,root_fn)
 root_file_mu = uproot.open(root_fn_mu)
 root_file = uproot.open(root_fn)
 def get_templ(
@@ -588,6 +595,7 @@ def shape_to_num(
             # pprint("_down_rate",_down_rate)
             _diff = np.abs(_up_rate - _nom_rate) + np.abs(_down_rate - _nom_rate)
             magnitude = _diff / (2.0 * _nom_rate)
+            log.debug(f"sample={sName}, syst={syst_down_up[0]} rate={_down_rate}, syst={syst_down_up[1]} rate={_up_rate}, magnitude={magnitude}")
         else:
             raise NotImplementedError
     if bound is not None:
@@ -880,8 +888,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     model = rl.Model(f"{sig}_model")
     siggy = sig
     bsiggy = sig.replace("m", "b")
-    log.info(f"Signals: {siggy}, {bsiggy}")
-    model.t2w_config = ("-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose "
+    if not (args.ftest or args.qcd_ftest):
+        log.info(f"Signals: {siggy}, {bsiggy}")
+        model.t2w_config = ("-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose "
                         f"--PO 'map=.*/*{siggy}*:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}*:r_b[1,-5,5]'"
                         )
 
@@ -938,14 +947,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 ),
             }
 
-            if not args.ftest:
-                templates[siggy] = get_templ(
+            templates[siggy] = get_templ(
                     region,
                     short_to_long[siggy],
                     ptbin,
                     tagger,
                     fourptbins=args.four_pt_bins,
                 )
+            if not (args.ftest or args.qcd_ftest):
                 templates[bsiggy] = get_templ(
                     region,
                     short_to_long[bsiggy],
@@ -956,9 +965,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             mask = validbins[ptbin].copy()
             
             if args.qcd_ftest:
-                include_samples = ["zqq"]  # qcd here?
+                include_samples = [siggy]  # qcd here?
             elif args.ftest or args.h_sensitivity:
-                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb"]
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy]
             else:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
 
@@ -967,12 +976,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 templ = templates[sName]
                 logging.info(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
 
-                if args.qcd_ftest or args.ftest:
-                    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
-                    # templ[0] = templ[0]*1e-4 #Scale down signal?
-                elif args.h_sensitivity:
+                #if args.qcd_ftest:
+                #    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
+                #    # templ[0] = templ[0]*1e-4 #Scale down signal?
+                if args.h_sensitivity:
                     stype = rl.Sample.SIGNAL if sName == "hbb" else rl.Sample.BACKGROUND
-                else:
+                else: #qcd_ftest and ftest here for now
                     stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy] else rl.Sample.BACKGROUND
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
 
@@ -1015,7 +1024,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         #'scalevar_7pt', 'scalevar_3pt',
                         #'UES','btagEffStat', 'btagWeight',
                     ]
-                    if stype == rl.Sample.SIGNAL and not args.ftest:
+                    if stype == rl.Sample.SIGNAL : #and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
                         logging.debug(f"  Adding systematic: '{sys_name}'")
@@ -1033,7 +1042,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 sys_name_updown[sys_name],
                                 mask,
                                 bound=None if "scalevar" not in sys_name else 0.25,
-                                inflate=True,
+                                inflate=False,
                             )
                             if _sys_ef is None:
                                 continue
@@ -1106,10 +1115,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             elif args.highbvl:
                                 scale = 5.5  # 1./np.sqrt(scale)
                             scale_pass.append(scale)
-                            pprint(
-                                "qcdscale needed to match mcstat uncs: using poisson:",
-                                scale,
-                            )
+                            #pprint(
+                            #    "qcdscale needed to match mcstat uncs: using poisson:",scale,
+                            #)
                             # _sample_yield = _sample_yield.copy()*1./scale
                         else:
                             scale = scale_pass[ptbin]
@@ -1117,7 +1125,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     else:
                         yields.append(_sample_yield)
                 yields = np.sum(np.array(yields), axis=0)
-                pprint("ptbin/region", ptbin, region, yields)
+                #pprint("ptbin/region", ptbin, region, yields)
                 if throwPoisson:
                     yields = np.random.poisson(yields)
 
@@ -1170,8 +1178,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ch_fail = model[f"ptbin{ptbin}fail"]
             ch_pass_pass = model[f"ptbin{ptbin}passhighbvl"]
             ch_pass_fail = model[f"ptbin{ptbin}passlowbvl"]
-            qq_samples = ["wqq", "zqq", "zbb", "hbb",]
-            if not args.ftest: qq_samples += [ siggy, bsiggy] 
+            qq_samples = ["wqq", "zqq", "zbb", "hbb", siggy]
+            if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
                 sample_fail = ch_fail[f"{sName}"]
                 sample_pass_pass = ch_pass_pass[f"{sName}"]
@@ -1309,7 +1317,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             initial_qcd = failCh.getObservation().astype(
                 float
             )  # was integer, and numpy complained about subtracting float from it
-            pprint(initial_qcd)
+            #pprint(initial_qcd)
             #log.debug("Initial_qcd", initial_qcd)
             for sample in failCh:
                 initial_qcd -= sample.getExpectation(nominal=True)
@@ -1467,7 +1475,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 sys_name_updown[sys_name],
                                 None,
                                 bound=None if "scalevar" not in sys_name else 0.25,
-                                inflate=True,
+                                inflate=False,
                                 muon=True, 
                             )
                             if _sys_ef is None:
@@ -1513,11 +1521,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             stqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
 
         else: 
-            passkey = f"ptbin{ptbin}pass"
+            passkey = f"muonCRpass"
             if args.highbvl:
-                passkey = f"ptbin{ptbin}passhighbvl"
+                passkey = f"muonCRpasshighbvl"
             elif args.lowbvl:
-                passkey = f"ptbin{ptbin}passlowbvl"
+                passkey = f"muonCRpasslowbvl"
             tqqpass = model[passkey]["tt"]
             tqqfail = model["muonCRfail"]["tt"]
             stqqpass = model[passkey]["st"]
