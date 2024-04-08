@@ -81,6 +81,7 @@ if args.root_path:
     output_file = ROOT.TFile(args.root_path+f"/TEMPLATES{'_blind' if args.is_blinded else ''}{'_fullrun2' if 'run2' in args.year else ''}.root", "RECREATE")
     print("Making SR templates from path ",args.root_path)
     for isamp,isamplist in sample_maps.items():
+        if "SingleMuon" in isamp: continue
         for tagger in ["pnmd2prong_0p05","pnmd2prong_0p01"]:
             for region in ["pass","fail","pass_lowbvl","pass_highbvl",]:
                 for iptbin in range(0,5):
@@ -91,9 +92,15 @@ if args.root_path:
                         #print(isamp in ["zqq","dy"])
                         if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
                         if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
-                        if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue 
-                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=sys_name_updown[syst][0],muon=False,nowarn=False,year="2017")
-                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=sys_name_updown[syst][1],muon=False,nowarn=False,year="2017")
+                        if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue
+                        syst_name_up = sys_name_updown[syst][0]
+                        syst_name_down = sys_name_updown[syst][1]
+ 
+                        if "year" in syst_name_up:
+                            syst_name_up = syst_name_up.replace('year',args.year)
+                            syst_name_down = syst_name_down.replace('year',args.year)
+                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_up,muon=False,nowarn=False,year="2017")
+                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_down,muon=False,nowarn=False,year="2017")
                 #break
     
 

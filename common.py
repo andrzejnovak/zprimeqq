@@ -20,19 +20,19 @@ lumi_1718_dict_unc = {
     "2018": 1.002,
 }
 
-sys_name_updown = {
-    "JES": ["jesTotaldown", "jesTotalup"],
-    "JER": ["jerdown", "jerup"],
-    "pileup_weight": ["pudown", "puup"],
-    "jet_trigger": ["stat_dn", "stat_up"],
-    "L1Prefiring": ["L1PreFiringdown", "L1PreFiringup"],
-    "d1kappa_EW" : ["d1kappa_EW_down", "d1kappa_EW_up"],
-    "d1K_NLO" : ["d1K_NLO_down", "d1K_NLO_up"],
-    "d2K_NLO" : ["d2K_NLO_down", "d2K_NLO_up"],
-    "d3K_NLO" : ["d3K_NLO_down", "d3K_NLO_up"],
-    "Z_d2kappa_EW" : ["Z_d2kappa_EW_down","Z_d2kappa_EW_up"],
-    "Z_d3kappa_EW" : ["Z_d3kappa_EW_down","Z_d3kappa_EW_up"],
-}
+#sys_name_updown = {
+#    "JES": ["jesTotaldown", "jesTotalup"],
+#    "JER": ["jerdown", "jerup"],
+#    "pileup_weight": ["pudown", "puup"],
+#    "jet_trigger": ["stat_dn", "stat_up"],
+#    "L1Prefiring": ["L1PreFiringdown", "L1PreFiringup"],
+#    "d1kappa_EW" : ["d1kappa_EW_down", "d1kappa_EW_up"],
+#    "d1K_NLO" : ["d1K_NLO_down", "d1K_NLO_up"],
+#    "d2K_NLO" : ["d2K_NLO_down", "d2K_NLO_up"],
+#    "d3K_NLO" : ["d3K_NLO_down", "d3K_NLO_up"],
+#    "Z_d2kappa_EW" : ["Z_d2kappa_EW_down","Z_d2kappa_EW_up"],
+#    "Z_d3kappa_EW" : ["Z_d3kappa_EW_down","Z_d3kappa_EW_up"],
+#}
 
 
 sample_maps = {
@@ -76,9 +76,12 @@ sample_maps_mu = {
 }
 sys_names = [
     'JES', 'JER', 'jet_trigger','pileup_weight','L1Prefiring',
-    'W_d2kappa_EW', 'W_d3kappa_EW', 'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
+    'jms', 'jmr',
+    'W_d2kappa_EW', 'W_d3kappa_EW',
+    'Z_d2kappa_EW', 'Z_d3kappa_EW',
+    'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
     #'scalevar_7pt', 'scalevar_3pt',
-    #'UES','btagEffStat', 'btagWeight',
+    'UES','btagstat1', 'btagstat2','btagSF',
     'muoid', 'muotrig','muoiso',                    
 ]
 
@@ -86,7 +89,9 @@ sys_name_updown = {
     'JES' : ["jesTotaldown","jesTotalup"], 
     'JER' : ["jerdown","jerup"], 
     'pileup_weight' : ["pudown","puup"], 
-    'jet_trigger' : ["stat_dn","stat_up"], 
+    'jet_trigger' : ["stat_dn","stat_up"],
+    'jms' : ["jmsdown","jmsup"],
+    'jmr' : ["jmrdown","jmrup"], 
     'L1Prefiring' : ["L1PreFiringup","L1PreFiringdown"],
     'W_d2kappa_EW' : ["W_d2kappa_EW_down","W_d2kappa_EW_up"],
     'W_d3kappa_EW' : ["W_d3kappa_EW_down","W_d3kappa_EW_up"],
@@ -99,5 +104,8 @@ sys_name_updown = {
     'mu_idweight' : ["muoiddown","muoidup"],
     'mu_trigger' : ["muotrigdown","muotrigup"],
     'mu_isoweight' : ["muoisodown","muoisoup"],
-    
+    'UES' : ["unclustEndown","unclustEnup"], 
+    'btagSF_hfstats1' : [r"btagSF_hfstats1_year_ULdown",r"btagSF_hfstats1_year_ULup"],
+    'btagSF_hfstats2' : [r"btagSF_hfstats2_year_ULdown",r"btagSF_hfstats2_year_ULup"],
+    'btagSF'  : ["btagSF_hfdown","btagSF_hfup"],
 }
