@@ -82,8 +82,8 @@ if args.root_path:
     print("Making SR templates from path ",args.root_path)
     for isamp,isamplist in sample_maps.items():
         if "SingleMuon" in isamp: continue
-        for tagger in ["pnmd2prong_0p05","pnmd2prong_0p01"]:
-            for region in ["pass","fail","pass_lowbvl","pass_highbvl",]:
+        for tagger in ["pnmd2prong_0p01"]:
+            for region in ["fail","pass_lowbvl","pass_highbvl",]:
                 for iptbin in range(0,5):
                     make_templates(args.root_path,region,isamp,iptbin,tagger,syst=None,muon=False,nowarn=False,year="2017")
                     if "JetHT" in isamp: continue

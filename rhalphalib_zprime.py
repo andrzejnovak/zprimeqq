@@ -686,6 +686,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
 
     tqqeffSF = rl.IndependentParameter("tqqeffSF", 1.0, 0, 10)
+    tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF", 1.0, 0, 10)
     tqqnormSF = rl.IndependentParameter("tqqnormSF", 1.0, 0, 10)
     tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl", 1.0, 0, 10)
     tqqnormSF_highbvl = rl.IndependentParameter("tqqnormSF_highbvl", 1.0, 0, 10)
@@ -1187,6 +1188,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 for sf, unc in zip([SF[args.year]['BB_SF']], [SF[args.year]['BB_SF_ERR']]):                      
                     sfunc = 1. + unc / sf
                     # Scale pass   
+                    log.debug(f"Scaling sample {sName} by {sf} +- {unc} for bb.")      
                     sample_pass.scale(sf)                
                     sample_pass.setParamEffect(sys_bbeff, sfunc)
                     
@@ -1223,7 +1225,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 
                 for sf, unc in zip([SF[args.year]['V_SF']], [SF[args.year]['V_SF_ERR']]):                      
                     sfunc = 1. + unc / sf
-                    # Scale both pass regions            
+                    # Scale both pass regions      
+                    log.debug(f"Scaling sample {sName} by {sf} +- {unc} for 2prong.")      
                     sample_pass_pass.scale(sf)                
                     sample_pass_pass.setParamEffect(sys_veff, sfunc)
                     sample_pass_fail.scale(sf)                
@@ -1368,6 +1371,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             passCh.addSample(pass_qcd)
 
     if args.muonCR:
+        log.debug("Adding constraints to tt and st in SR") 
+        ##Two regions AND not running ftest (for ftest we assume only 1 pass either highbvl or lowbvl and 1 fail)
         if args.tworeg and not args.ftest:
             for ptbin in range(npt):
 
@@ -1391,6 +1396,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
                 tqqPF = sumPass / sumFail 
 
+                sumHighbvl = tqqpass_highbvl.getExpectation(nominal=True).sum() +\
+                             stqqpass_highbvl.getExpectation(nominal=True).sum()
+                sumLowbvl =  tqqpass_lowbvl.getExpectation(nominal=True).sum() +\
+                             stqqpass_lowbvl.getExpectation(nominal=True).sum()
+
+                tqqHL = sumHighbvl / sumLowbvl
+
                 # common eff SFs for both high and low bvl regions (tt and st)
                 tqqpass_highbvl .setParamEffect(tqqeffSF, 1 * tqqeffSF)
                 tqqpass_lowbvl  .setParamEffect(tqqeffSF, 1 * tqqeffSF)
@@ -1398,6 +1410,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 stqqpass_highbvl.setParamEffect(tqqeffSF, 1 * tqqeffSF)
                 stqqpass_lowbvl .setParamEffect(tqqeffSF, 1 * tqqeffSF)
                 stqqfail        .setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
+
+                # SF between high and low bvl regions (tt and st)
+                tqqpass_highbvl .setParamEffect(tqqeffHLSF, 1 * tqqeffHLSF)
+                tqqpass_lowbvl  .setParamEffect(tqqeffHLSF, 1 * (1 - tqqeffHLSF) * tqqHL + 1)
+                stqqpass_highbvl.setParamEffect(tqqeffHLSF, 1 * tqqeffHLSF)
+                stqqpass_lowbvl .setParamEffect(tqqeffHLSF, 1 * (1 - tqqeffHLSF) * tqqHL + 1)
+
                 # common norm SFs for both pass and fail 
                 tqqpass_highbvl .setParamEffect(tqqnormSF, 1 * tqqnormSF)
                 tqqpass_lowbvl  .setParamEffect(tqqnormSF, 1 * tqqnormSF)
@@ -1406,40 +1425,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 stqqpass_lowbvl .setParamEffect(tqqnormSF, 1 * tqqnormSF)
                 stqqfail        .setParamEffect(tqqnormSF, 1 * tqqnormSF)
 
-                '''
-                failCh = model[f"ptbin{ptbin}{fail_regs[0].replace('_','')}"]
-                passCh_highbvl = model[f"ptbin{ptbin}{pass_regs[0].replace('_','')}"]
-                passCh_lowbvl  = model[f"ptbin{ptbin}{pass_regs[1].replace('_','')}"]
-                tqqpass_highbvl = passCh_highbvl["tt"]
-                tqqpass_lowbvl  = passCh_lowbvl["tt"]
-                tqqfail         = failCh["tt"]
-                stqqpass_highbvl= passCh_highbvl["st"]
-                stqqpass_lowbvl = passCh_lowbvl["st"]
-                stqqfail        = failCh["st"]
-                sumPass_highbvl = tqqpass_highbvl.getExpectation(nominal=True).sum() + stqqpass_highbvl.getExpectation(nominal=True).sum()
-                sumPass_lowbvl = tqqpass_lowbvl.getExpectation(nominal=True).sum() + stqqpass_lowbvl.getExpectation(nominal=True).sum()
-                sumFail = tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum()
-                tqqPF_highbvl = sumPass_highbvl / sumFail
-                tqqPF_lowbvl  = sumPass_lowbvl / sumFail
-                tqqpass_highbvl.setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
-                tqqpass_lowbvl .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-                tqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
-                tqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
-                tqqpass_highbvl.setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-                tqqpass_lowbvl .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-                tqqfail        .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl) 
-                tqqfail        .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
- 
-
-                stqqpass_highbvl.setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
-                stqqpass_lowbvl .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-                stqqfail        .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
-                stqqfail        .setParamEffect(tqqeffSF_lowbvl, (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
-                stqqpass_highbvl.setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-                stqqpass_lowbvl .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-                stqqfail        .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-                stqqfail        .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-                '''
         else:
             passkey = f"ptbin{ptbin}pass"
             if args.highbvl:
@@ -1572,6 +1557,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             tqqPF = sumPass / sumFail
 
+
+            sumHighbvl = tqqpass_highbvl.getExpectation(nominal=True).sum() +\
+                         stqqpass_highbvl.getExpectation(nominal=True).sum()
+            sumLowbvl =  tqqpass_lowbvl.getExpectation(nominal=True).sum() +\
+                         stqqpass_lowbvl.getExpectation(nominal=True).sum()
+
+            tqqHL = sumHighbvl / sumLowbvl
+
             # common eff SFs for both high and low bvl regions (tt and st)
             tqqpass_highbvl .setParamEffect(tqqeffSF, 1 * tqqeffSF)
             tqqpass_lowbvl  .setParamEffect(tqqeffSF, 1 * tqqeffSF)
@@ -1579,6 +1572,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             stqqpass_highbvl.setParamEffect(tqqeffSF, 1 * tqqeffSF)
             stqqpass_lowbvl .setParamEffect(tqqeffSF, 1 * tqqeffSF)
             stqqfail        .setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
+
+            # SF between high and low bvl regions (tt and st)
+            tqqpass_highbvl .setParamEffect(tqqeffHLSF, 1 * tqqeffHLSF)
+            tqqpass_lowbvl  .setParamEffect(tqqeffHLSF, 1 * (1 - tqqeffHLSF) * tqqHL + 1)
+            stqqpass_highbvl.setParamEffect(tqqeffHLSF, 1 * tqqeffHLSF)
+            stqqpass_lowbvl .setParamEffect(tqqeffHLSF, 1 * (1 - tqqeffHLSF) * tqqHL + 1)
+
             # common norm SFs for both pass and fail 
             tqqpass_highbvl .setParamEffect(tqqnormSF, 1 * tqqnormSF)
             tqqpass_lowbvl  .setParamEffect(tqqnormSF, 1 * tqqnormSF)
@@ -1588,28 +1588,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             stqqfail        .setParamEffect(tqqnormSF, 1 * tqqnormSF)
 
 
-            '''
-            tqqPF_highbvl   = (tqqpass_highbvl.getExpectation(nominal=True).sum()  + tqqpass_highbvl.getExpectation(nominal=True).sum()) / (tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum() ) 
-            tqqPF_lowbvl    = (tqqpass_lowbvl.getExpectation(nominal=True).sum() + stqqpass_lowbvl.getExpectation(nominal=True).sum()) / (tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum())
-
-            tqqpass_highbvl .setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
-            tqqpass_lowbvl  .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-            tqqfail         .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
-            tqqfail         .setParamEffect(tqqeffSF_lowbvl,  (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
-            tqqpass_highbvl .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-            tqqpass_lowbvl  .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-            tqqfail         .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-            tqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
- 
-            stqqpass_highbvl .setParamEffect(tqqeffSF_highbvl, 1 * tqqeffSF_highbvl)
-            stqqpass_lowbvl  .setParamEffect(tqqeffSF_lowbvl, 1 * tqqeffSF_lowbvl)
-            stqqfail         .setParamEffect(tqqeffSF_highbvl, (1 - tqqeffSF_highbvl) * tqqPF_highbvl + 1)
-            stqqfail         .setParamEffect(tqqeffSF_lowbvl,  (1 - tqqeffSF_lowbvl) * tqqPF_lowbvl + 1)
-            stqqpass_highbvl .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-            stqqpass_lowbvl  .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-            stqqfail         .setParamEffect(tqqnormSF_highbvl, 1 * tqqnormSF_highbvl)
-            stqqfail         .setParamEffect(tqqnormSF_lowbvl, 1 * tqqnormSF_lowbvl)
-            '''
         else: 
             passkey = f"muonCRpass"
             if args.highbvl:

@@ -81,7 +81,7 @@ sys_names = [
     'Z_d2kappa_EW', 'Z_d3kappa_EW',
     'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
     #'scalevar_7pt', 'scalevar_3pt',
-    'UES','btagstat1', 'btagstat2','btagSF',
+    'UES','btagSF_hfstats1', 'btagSF_hfstats2','btagSF',
     'muoid', 'muotrig','muoiso',                    
 ]
 
