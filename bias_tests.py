@@ -73,7 +73,7 @@ if args.build:
     cmd = "bash build.sh"
     commands.append(cmd)
     if args.r:
-        cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}*:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
+        cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
         commands.append(cmd)
 
 if args.significance:
@@ -83,7 +83,7 @@ if args.significance:
     commands.append(cmd)
 
 if args.run:
-    cmd = """ echo "combineTool.py -M FitDiagnostics -t 1 --toysFrequentist -s 1:500:1 """
+    cmd = """ echo "combineTool.py -M FitDiagnostics -t 2 --toysFrequentist -s 1:500:1 """
     cmd += overall_cmd
     if args.condor:
         cmd += condor_str
@@ -135,6 +135,8 @@ if args.collect:
     } 
     mus = np.array(mus[3::4])
     muerrs = np.array(muerrs[3::4])
+    #mus = mus[:500]
+    #muerrs = muerrs[:500]
     safe = (mus-muerrs>-2) & (mus+muerrs<2)
     mus=mus[safe]
     muerrs=muerrs[safe]
@@ -147,7 +149,7 @@ if args.collect:
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
     #n, bins, patches = ax.hist(mus,bins=25,range=(np.floor(mus.min()*2)/2,np.ceil(mus.max()*2)/2),facecolor='orange',linewidth=1.2,edgecolor='black')
-    n, bins, patches = ax.hist(mus,bins=30,range=(np.floor(mus.min()*2)/2,np.ceil(mus.max()*2)/2),facecolor='orange',linewidth=1.2,edgecolor='black')
+    n, bins, patches = ax.hist(mus,bins=25,range=(np.floor(mus.min()*2)/2,np.ceil(mus.max()*2)/2),facecolor='orange',linewidth=1.2,edgecolor='black')
 
     x = [0.5 * (bins[i] + bins[i+1]) for i in range(len(bins)-1)]
     y = n.tolist()
@@ -159,11 +161,11 @@ if args.collect:
     hep.cms.label(data=False, year=args.year, lumi=args.lumi, fontsize=20)
     plt.plot(x_fit, y_fit, lw=4, color="r")
 
-
-    ax.text(0.05, 0.95, (r'$\mu$={:.2f}'+'\n'+r'$\sigma$={:.2f}').format(mean,stdev), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
+    print(popt)
+    ax.text(0.05, 0.95, (r'$\mu$={:.2f}'+'\n'+r'$\sigma$={:.2f}').format(popt[1],np.abs(popt[2])), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
     ax.text(0.80, 0.95, (r'toys: {0}').format(mus.shape[0]), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
     #plt.title(r"Injected $\mu={injected_mu}$, initial fit: freely floating $\mu$ VPT, toys fit dEtabb".format(injected_mu=injected_mu))
-    plt.xlabel(r"(r - $\hat{r}$) / $\sigma$)")#{p_to_label[p]}")
+    plt.xlabel(r"(r - $\hat{r}$) / $\sigma$")#{p_to_label[p]}")
     #plt.xlabel(r"measured {param}".format(param=p))
     #plt.ylim([0,60])
 
