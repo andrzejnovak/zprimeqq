@@ -43,7 +43,7 @@ def gauss(x, a, b, c):
 
 
 taskname="limit_"+str(args.sigmass)+"_"+args.postfix
-condor_str = """ --job-mode condor --sub-opts=\'+JobFlavour = \"longlunch\"\' --task-name {taskname} --job-dir results/limits/test_v0/pnmd2prong_0p01/ipt0_irho0/m125/m125_model/ """.format(taskname=taskname)
+condor_str = """ --job-mode condor --sub-opts=\'+JobFlavour = \"longlunch\"\n+MaxRuntime = 6000\' --task-name {taskname} --job-dir results/limits/test_v0/pnmd2prong_0p01/ipt0_irho0/m125/m125_model/ """.format(taskname=taskname)
 overall_cmd = ""
 
 
@@ -175,8 +175,8 @@ if args.collect:
        postfix="r"
     elif args.r_b:
        postfix="rb"
-    fig.savefig("{OPATH}/Bias_{p}.pdf".format(OPATH=OPATH,p=postfix))
-    fig.savefig("{OPATH}/Bias_{p}.png".format(OPATH=OPATH,p=postfix))
+    fig.savefig("{OPATH}/Bias_{p}_{rhat}.pdf".format(OPATH=OPATH,p=postfix,rhat=args.r_hat))
+    fig.savefig("{OPATH}/Bias_{p}_{rhat}.png".format(OPATH=OPATH,p=postfix,rhat=args.r_hat))
 
     
 if args.debug:

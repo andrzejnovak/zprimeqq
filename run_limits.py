@@ -68,7 +68,9 @@ tf_orders = {
 }
 
 taskname="limit_"+str(args.sigmass)+"_"+args.postfix
-condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\' --task-name {taskname} """.format(taskname=taskname)
+if args.r_b:
+    taskname += "_rb"
+condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 6000\' --task-name {taskname} """.format(taskname=taskname)
 overall_cmd = ""
 if args.asimov:
     overall_cmd += " -t -1 "
@@ -78,9 +80,9 @@ if args.frequentist:
 if args.r:
     overall_cmd += " --redefineSignalPOIs r -d inclusive_workspace.root "
 elif args.r_b:
-    overall_cmd += " --redefineSignalPOIs r_b -d model_combined.root "
+    overall_cmd += " --redefineSignalPOIs r_b --setParameters r_q=0,r_b=0 --freezeParameters r_q -d model_combined.root -n r_b "
 elif args.r_q:
-    overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root "
+    overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
     cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong_0p01 --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]}"
@@ -130,8 +132,8 @@ lumi={
 }
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
-    cmd = "python3 plotLims.py --ipath {ipath} --observed --gq --year {year} --lumi {lumi}".format(ipath="/".join(opath.split("/")[2]),year=args.year,lumi=lumi[args.year])
-    
+    cmd = "python3 plotLims.py --ipath {ipath} {observed} --gq --year {year} --lumi {lumi} {rb} {asimov}".format(ipath="/".join(OPATH.split("/")[:5]),year=args.year,lumi=lumi[args.year],rb="--rb" if args.r_b else "",asimov="--asimov" if args.asimov else "", observed="--observed" if not args.asimov else "")
+    commands.append(cmd) 
 if args.debug:
     for cmd in commands:
         print(cmd)

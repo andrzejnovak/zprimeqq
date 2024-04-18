@@ -57,7 +57,7 @@ def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=F
     if syst is not None:
         hist_str += f"__{syst}"
         master_hist_name += f"__{syst}"
-    print("hist_str",hist_str)
+    print("master_hist_name",master_hist_name)
     hist0 = file0.Get(hist_str)
     master_hist = hist0.Clone(master_hist_name)#+"_"+sample)
     master_hist.Reset()
@@ -82,14 +82,14 @@ if args.root_path:
     print("Making SR templates from path ",args.root_path)
     for isamp,isamplist in sample_maps.items():
         if "SingleMuon" in isamp: continue
-        for tagger in ["pnmd2prong_0p01"]:
-            for region in ["fail","pass_lowbvl","pass_highbvl",]:
+        for tagger in ["pnmd2prong"]:
+            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L","pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 for iptbin in range(0,5):
+                    print(f"Making hists for sample {isamp}, tagger {tagger}, region {region}, iptbin {iptbin}")
                     make_templates(args.root_path,region,isamp,iptbin,tagger,syst=None,muon=False,nowarn=False,year="2017")
                     if "JetHT" in isamp: continue
                     for syst in sys_names:
                         if "muo" in syst: continue
-                        #print(isamp in ["zqq","dy"])
                         if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
                         if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
                         if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue

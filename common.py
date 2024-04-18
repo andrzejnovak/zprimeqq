@@ -1,16 +1,22 @@
 
 
 lumi_dict = {
-    "2017": 41100,
+    "2016APV" : 19520.,
+    "2016" : 16810.,
+    "2017" : 41480.,
+    "2018" : 59720.,
+  
     "fullrun2" : 150000,
 }
 
 lumi_dict_unc = {
+    "2016APV": 1.01,
     "2016": 1.01,
     "2017": 1.02,
     "2018": 1.015,
 }
 lumi_correlated_dict_unc = {
+    "2016APV": 1.006,
     "2016": 1.006,
     "2017": 1.009,
     "2018": 1.02,
@@ -36,6 +42,7 @@ lumi_1718_dict_unc = {
 
 
 sample_maps = {
+    "vv" : ["WZ_TuneCP5_13TeV-pythia8", "ZZ_TuneCP5_13TeV-pythia8","WW_TuneCP5_13TeV-pythia8"],
     "QCD" : ["QCD_HT500to700","QCD_HT700to1000","QCD_HT1000to1500","QCD_HT1500to2000","QCD_HT2000toInf"],
     "wqq" : ["WJetsToQQ_HT-600to800","WJetsToQQ_HT-800toInf"],
     "zqq" : ["ZJetsToQQ_HT-600to800","ZJetsToQQ_HT-800toInf"],
@@ -53,6 +60,7 @@ sample_maps = {
     "zpqq150" : ["VectorZPrimeToQQ_M150"],
     "zpqq200" : ["VectorZPrimeToQQ_M200"],
     "zpqq250" : ["VectorZPrimeToQQ_M250"],
+    #"zpqq300" : ["VectorZPrimeToQQ_M300"],
     "zpbb50" : ["VectorZPrimeToBB_M50"],
     "zpbb75" : ["VectorZPrimeToBB_M75"],
     "zpbb100" : ["VectorZPrimeToBB_M100"],
@@ -60,6 +68,7 @@ sample_maps = {
     "zpbb150" : ["VectorZPrimeToBB_M150"],
     "zpbb200" : ["VectorZPrimeToBB_M200"],
     "zpbb250" : ["VectorZPrimeToBB_M250"],
+    #"zpbb300" : ["VectorZPrimeToBB_M300"],
     "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"]
 }
 
@@ -81,7 +90,8 @@ sys_names = [
     'Z_d2kappa_EW', 'Z_d3kappa_EW',
     'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
     #'scalevar_7pt', 'scalevar_3pt',
-    'UES','btagSF_hfstats1', 'btagSF_hfstats2','btagSF',
+    'UES','btagSF_heavy_correlated','btagSF_light_correlated',
+    'btagSF_heavy_year', 'btagSF_light_year',
     'muoid', 'muotrig','muoiso',                    
 ]
 
@@ -105,7 +115,8 @@ sys_name_updown = {
     'mu_trigger' : ["muotrigdown","muotrigup"],
     'mu_isoweight' : ["muoisodown","muoisoup"],
     'UES' : ["unclustEndown","unclustEnup"], 
-    'btagSF_hfstats1' : [r"btagSF_hfstats1_year_ULdown",r"btagSF_hfstats1_year_ULup"],
-    'btagSF_hfstats2' : [r"btagSF_hfstats2_year_ULdown",r"btagSF_hfstats2_year_ULup"],
-    'btagSF'  : ["btagSF_hfdown","btagSF_hfup"],
+    'btagSF_heavy_correlated' : [r"btagSF_heavydown","btagSF_heavyup"],
+    'btagSF_light_correlated' : [r"btagSF_lightdown","btagSF_lightup"],
+    'btagSF_heavy_year'  : [r"btagSF_heavy_M_year_ULdown",r"btagSF_heavy_M_year_ULup"],
+    'btagSF_light_year'  : [r"btagSF_light_M_year_ULdown",r"btagSF_light_M_year_ULup"],
 }

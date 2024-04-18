@@ -285,20 +285,71 @@ short_to_long = {
     # "m200": "VectorZPrimeToQQ_M200",
     # "m250": "VectorZPrimeToQQ_M250",
     "m50": "zpqq50",
+    "m55": "zpqq55",
+    "m60": "zpqq60",
+    "m65": "zpqq65",
+    "m70": "zpqq70",
     "m75": "zpqq75",
+    "m80": "zpqq80",
+    "m85": "zpqq85",
+    "m90": "zpqq90",
+    "m95": "zpqq95",
     "m100": "zpqq100",
+    "m105": "zpqq105",
+    "m110": "zpqq110",
+    "m115": "zpqq115",
+    "m115": "zpqq115",
+    "m120": "zpqq120",
     "m125": "zpqq125",
+    "m130": "zpqq130",
+    "m135": "zpqq135",
+    "m140": "zpqq140",
+    "m145": "zpqq145",
     "m150": "zpqq150",
+    "m155": "zpqq155",
+    "m160": "zpqq160",
+    "m165": "zpqq165",
+    "m170": "zpqq170",
+    "m175": "zpqq175",
+    "m180": "zpqq180",
+    "m185": "zpqq185",
+    "m190": "zpqq190",
+    "m195": "zpqq195",
     "m200": "zpqq200",
     "m250": "zpqq250",
     "b50": "zpbb50",
+    "b55": "zpbb55",
+    "b60": "zpbb60",
+    "b65": "zpbb65",
+    "b70": "zpbb70",
     "b75": "zpbb75",
+    "b80": "zpbb80",
+    "b85": "zpbb85",
+    "b90": "zpbb90",
+    "b95": "zpbb95",
     "b100": "zpbb100",
+    "b105": "zpbb105",
+    "b110": "zpbb110",
+    "b115": "zpbb115",
+    "b115": "zpbb115",
+    "b120": "zpbb120",
     "b125": "zpbb125",
+    "b130": "zpbb130",
+    "b135": "zpbb135",
+    "b140": "zpbb140",
+    "b145": "zpbb145",
     "b150": "zpbb150",
+    "b155": "zpbb155",
+    "b160": "zpbb160",
+    "b165": "zpbb165",
+    "b170": "zpbb170",
+    "b175": "zpbb175",
+    "b180": "zpbb180",
+    "b185": "zpbb185",
+    "b190": "zpbb190",
+    "b195": "zpbb195",
     "b200": "zpbb200",
     "b250": "zpbb250",
-    # "m300" : "VectorZPrimeToQQ_M300",
 }
 
 sys_types = {
@@ -371,6 +422,7 @@ sample_maps = {
     ],
     "VectorZPrimeToQQ_M50": ["VectorZPrimeToQQ_M50"],
     "VectorZPrimeToQQ_M75": ["VectorZPrimeToQQ_M75"],
+    "VectorZPrimeToQQ_M85": ["VectorZPrimeToQQ_M85"],
     "VectorZPrimeToQQ_M100": ["VectorZPrimeToQQ_M100"],
     "VectorZPrimeToQQ_M125": ["VectorZPrimeToQQ_M125"],
     "VectorZPrimeToQQ_M150": ["VectorZPrimeToQQ_M150"],
@@ -379,8 +431,7 @@ sample_maps = {
     # "VectorZPrimeToQQ_M300" : ["VectorZPrimeToQQ_M300"],
 }
 
-if args.all_signals:
-    signals = [
+all_signals = [
         "m50",
         "m75",
         "m100",
@@ -388,10 +439,11 @@ if args.all_signals:
         "m150",
         "m200",
         "m250",
-    ]
-else:
-    signals = ["m" + args.sigmass]
+]
 
+signals = ["m" + args.sigmass]
+
+    
 poly_order = (args.ipt, args.irho)
 
 
@@ -482,6 +534,10 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
     return
 
+isinterp = signals[0] in ["m"+str(x) for x in range(40,350,5)] and signals[0] not in all_signals
+if isinterp:
+    log.debug(f"m {signals[0]} is interpolated signal")
+    root_file_signals = uproot.open("signals_interpolated_systs.root")
 root_fn_mu = args.root_file_mu
 root_fn = args.root_file
 print(root_fn_mu,root_fn)
@@ -509,9 +565,10 @@ def get_templ(
         hist_str = hist_str + "__" + syst
     if muon:
         hist = root_file_mu[hist_str]
+    elif isinterp and ("zpqq" in sample or "zpbb" in sample):
+        hist = root_file_signals[hist_str]
     else:
-        hist = root_file[hist_str]
-        
+        hist = root_file[hist_str] 
     hist_values = hist.values()
     hist_variances = hist.variances()
     hist_edges = hist.axis().edges()
@@ -525,7 +582,7 @@ def get_templ(
         hist_values += hist.values()
         hist_variances += hist.variances()
 
-    if np.any(~np.isfinite(hist_values) < 0.0):
+    if np.any(~np.isfinite(hist_values)):
         _invalid = ~np.isfinite(hist_values)
         hist_values[ _invalid ] = 0.
         hist_variances[ _invalid ] = 0.
@@ -541,6 +598,7 @@ def get_templ(
             hist_values = hist_values[:observable.nbins]
             hist_edges = hist_edges[:observable.nbins+1]
             hist_variances = hist_variances[:observable.nbins] 
+    
     if muon:
         hist_key = "msd_muon"
     else:
@@ -913,7 +971,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     if not (args.ftest or args.qcd_ftest):
         log.info(f"Signals: {siggy}, {bsiggy}")
         model.t2w_config = ("-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose "
-                        f"--PO 'map=.*/*{siggy}*:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}*:r_b[1,-5,5]'"
+                        f"--PO 'map=.*/*{siggy}:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}:r_b[1,-5,5]'"
                         )
 
     scale_pass = []

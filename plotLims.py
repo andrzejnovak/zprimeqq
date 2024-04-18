@@ -10,6 +10,11 @@ import glob
 import argparse
 import matplotlib.pyplot as plt
 import mplhep as hep
+from matplotlib.ticker import ScalarFormatter
+import matplotlib.ticker as mticker
+from matplotlib.ticker import LogLocator, FuncFormatter
+
+
 #hep.style.use("CMS") # string aliases work too
 plt.style.use(hep.style.CMS)
 parser = argparse.ArgumentParser(description='Rhalphalib setup.')
@@ -23,7 +28,12 @@ parser.add_argument('--rb', dest='rb', action='store_true',help='b-limit')
 
 args = parser.parse_args()
 
-masses = [50,75,100,125,150,200,250]
+masses = [55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,165,170,175,180,185,190,195,200]
+
+def format_func(value, tick_number):
+    # format the tick as plain, not scientific
+    return f"{value:.0f}" if value > 1 else f"{value:.2f}"
+
 
 
 def setDict():
@@ -68,8 +78,21 @@ def read_limits(f):
     for entry in range(ttree.GetEntries()):
         ttree.GetEntry(entry)
         limits.append(limit[0])
-    #print(limits)
+    print(f,limits)
     return limits
+
+class SimpleFormatter(mticker.LogFormatterSciNotation):
+    def __call__(self, value, pos=None): 
+        print("Hello")
+        if value != 0:
+            return f"{value:.2f}"
+        else:
+            return "0"
+
+def non_scientific(y, pos):
+    """ Custom formatter to replace scientific notation """
+    return f'{y:.2f}'
+
 
 def get_graphs():
     theory_xsec, sample_xsec = setDict()
@@ -81,11 +104,12 @@ def get_graphs():
     obs = [] 
     for mass in masses:
         if args.rb:
-            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombinerblimit.AsymptoticLimits.mH120.root")
+            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombiner_b.AsymptoticLimits.mH120.root")
         else:
-            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombineTest.AsymptoticLimits.mH120.root")
+            limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombine.Test.AsymptoticLimits.mH120.root")
         fac = sample_xsec['Zpqq'].Eval(mass,0,'S')
         theory = theory_xsec['Zpqq'].Eval(mass,0,'S')
+        fac,theory=1.,1.
         theory = theory * 4. * 4.
         lo2.append(math.sqrt(limits[0]*fac/theory))
         lo1.append(math.sqrt(limits[1]*fac/theory))
@@ -96,22 +120,32 @@ def get_graphs():
             assert(len(limits)>5)
             obs.append(math.sqrt(limits[5]*fac/theory))
     fig,ax = plt.subplots(figsize=(8,8))
-    hep.cms.label(year=args.year,data=False if args.asimov else True,lumi=args.lumi,fontsize=16)
+    ax.set_yscale("log")    
+    hep.cms.label(year=args.year,data=False if args.asimov else True,lumi=args.lumi,fontsize=17)
+    #ax.yaxis.set_major_formatter(SimpleFormatter())
+    ax.yaxis.set_major_formatter(FuncFormatter(non_scientific))
+    ax.yaxis.set_minor_formatter(FuncFormatter(non_scientific))
+    #ax.yaxis.set_major_locator(plt.MaxNLocator(2))
+    #ax.yaxis.set_major_locator(LogLocator(base=10, numticks=4))
+    #ax.yaxis.set_minor_locator(LogLocator(base=10, numticks=5))
+    ax.set_yticks([0.04,0.05,0.07,0.1,0.14,0.2,0.5,1.0],[0.04,0.05,0.07,0.1,0.14,0.2,0.5,1.0])
     ax.fill_between(masses,lo2,hi2,color='gold',label="Expected $\pm 2 \sigma$")
     ax.fill_between(masses,lo1,hi1,color='limegreen',label="Expected $\pm 1 \sigma$")
-    
+    ax.plot(masses,med,color='black',linestyle="--",linewidth=1.5,label="Expected")
     if args.observed:
-        ax.plot(masses,obs,color='#F0240Bff',marker='o',label="Observed")
+        ax.plot(masses,obs,color='black',linestyle="-",linewidth=1.5,label="Observed")
     if args.rb:
         ax.set_ylabel("$g'_{b}$")
     else:
         ax.set_ylabel("$g'_{q}$")
     ax.set_xlabel("Z' mass (GeV)")
+    ax.set_ylim(min(lo2)*0.7,max(hi2)*2)
+    ax.set_xlim(min(masses),max(masses)) 
+    
     plt.tight_layout()
-    plt.legend(loc="upper left")
-    plt.savefig(f"{args.ipath}/limits.png")
-    plt.savefig(f"{args.ipath}/limits.pdf")
-    plt.yscale("log")    
-    plt.savefig(f"{args.ipath}/limits_logy.png")
-    plt.savefig(f"{args.ipath}/limits_logy.pdf")
+    plt.legend(loc="upper left",fontsize=15)
+    #plt.savefig(f"{args.ipath}/limits.png")
+    #plt.savefig(f"{args.ipath}/limits.pdf")
+    plt.savefig("{ipath}/limits_logy_{r_b}.png".format(ipath=args.ipath,r_b="r_b" if args.rb else "r"))
+    plt.savefig("{ipath}/limits_logy_{r_b}.pdf".format(ipath=args.ipath,r_b="r_b" if args.rb else "r"))
 get_graphs() 
