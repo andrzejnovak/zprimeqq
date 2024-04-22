@@ -53,6 +53,7 @@ sample_maps = {
     "hbb" : ["GluGluHToBB","VBFHToBB","ttHToBB","ggZHToBB","ZHToBB","WplusH_HToBB","WminusH_HToBB",],
     "wlnu" : ["WJetsToLNu_HT400to600","WJetsToLNu_HT600to800","WJetsToLNu_HT800to1200","WJetsToLNu_HT1200to2500","WJetsToLNu_HT2500toInf"],
     "JetHT_2017" : ["JetHT_Run2017B","JetHT_Run2017C","JetHT_Run2017D","JetHT_Run2017E","JetHT_Run2017F"],
+    "JetHT_2018" : ["JetHT_Run2018A","JetHT_Run2018B","JetHT_Run2018C","JetHT_Run2018D"],
     "zpqq50" : ["VectorZPrimeToQQ_M50"],
     "zpqq75" : ["VectorZPrimeToQQ_M75"],
     "zpqq100" : ["VectorZPrimeToQQ_M100"],
@@ -69,7 +70,8 @@ sample_maps = {
     "zpbb200" : ["VectorZPrimeToBB_M200"],
     "zpbb250" : ["VectorZPrimeToBB_M250"],
     #"zpbb300" : ["VectorZPrimeToBB_M300"],
-    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"]
+    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"],
+    "SingleMuon_2018" : ["SingleMuon_Run2018A","SingleMuon_Run2018B","SingleMuon_Run2018C","SingleMuon_Run2018D"]
 }
 
 sample_maps_mu = {
@@ -81,7 +83,8 @@ sample_maps_mu = {
     "dy"  : ["DYJetsToLL_HT-400To600","DYJetsToLL_HT-600To800","DYJetsToLL_HT-800To1200","DYJetsToLL_HT-1200To2500"],
     "st"  : ["ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8","ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8"],
     "wlnu" : ["WJetsToLNu_HT400to600","WJetsToLNu_HT600to800","WJetsToLNu_HT800to1200","WJetsToLNu_HT1200to2500","WJetsToLNu_HT2500toInf"],
-    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"]
+    "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"],
+    "SingleMuon_2018" : ["SingleMuon_Run2018A","SingleMuon_Run2018B","SingleMuon_Run2018C","SingleMuon_Run2018D"]
 }
 sys_names = [
     'JES', 'JER', 'jet_trigger','pileup_weight','L1Prefiring',
@@ -92,7 +95,8 @@ sys_names = [
     #'scalevar_7pt', 'scalevar_3pt',
     'UES','btagSF_heavy_correlated','btagSF_light_correlated',
     'btagSF_heavy_year', 'btagSF_light_year',
-    'muoid', 'muotrig','muoiso',                    
+    'muoid', 'muotrig','muoiso',                   
+    'HEMissue', 
 ]
 
 sys_name_updown = {
@@ -111,12 +115,13 @@ sys_name_updown = {
     'd1K_NLO' : ["d1K_NLO_down","d1K_NLO_up"],  
     'd2K_NLO' : ["d2K_NLO_down","d2K_NLO_up"],  
     'd3K_NLO' : ["d3K_NLO_down","d3K_NLO_up"],  
-    'mu_idweight' : ["muoiddown","muoidup"],
-    'mu_trigger' : ["muotrigdown","muotrigup"],
-    'mu_isoweight' : ["muoisodown","muoisoup"],
+    'muoid' : ["muoiddown","muoidup"],
+    'muotrig' : ["muotrigdown","muotrigup"],
+    'muoiso' : ["muoisodown","muoisoup"],
     'UES' : ["unclustEndown","unclustEnup"], 
     'btagSF_heavy_correlated' : [r"btagSF_heavydown","btagSF_heavyup"],
     'btagSF_light_correlated' : [r"btagSF_lightdown","btagSF_lightup"],
     'btagSF_heavy_year'  : [r"btagSF_heavy_M_year_ULdown",r"btagSF_heavy_M_year_ULup"],
     'btagSF_light_year'  : [r"btagSF_light_M_year_ULdown",r"btagSF_light_M_year_ULup"],
+    'HEMissue' : ["jesHEMIssuedown","jesHEMIssueup"],
 }

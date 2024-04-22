@@ -127,8 +127,9 @@ parser.add_argument(
     "--do_systematics", action="store_true", help="Include systematics."
 )
 parser.add_argument(
-    "--do_systematics_mu", action="store_true", help="Include systematics."
+    "--decorr_scale", action="store_true", help="Decorrelate scale by pt bin."
 )
+
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
     # pseudo.add_argument("--data", action="store_false", dest="pseudo")
     # pseudo.add_argument("--MC", action="store_true", dest="pseudo")
@@ -197,13 +198,20 @@ SF = {
     },
     "2017": {
         "BB_SF": 1,
-        "BB_SF_ERR": 0.1,
-        "V_SF": 0.827,
-        "V_SF_ERR": 0.042,
-        "SHIFT_SF": 0.417,
-        "SHIFT_SF_ERR": 0.395,
-        "SMEAR_SF": 1.011,
-        "SMEAR_SF_ERR":0.024,
+        "BB_SF_ERR": 0.3,
+        #"V_SF": 0.827,
+        #"V_SF_ERR": 0.042,
+        #"SHIFT_SF": 0.417,
+        #"SHIFT_SF_ERR": 0.395,
+        #"SMEAR_SF": 1.011,
+        #"SMEAR_SF_ERR":0.024,
+        "V_SF": 0.802,
+        "V_SF_ERR": 0.043,
+        "SHIFT_SF": 0.620,
+        #"SHIFT_SF_ERR": 0.272,
+        "SHIFT_SF_ERR": 1.0,
+        "SMEAR_SF": 1.22,
+        "SMEAR_SF_ERR":0.112,
     },
     "2018": {
         "BB_SF": 1,
@@ -316,6 +324,15 @@ short_to_long = {
     "m190": "zpqq190",
     "m195": "zpqq195",
     "m200": "zpqq200",
+    "m205": "zpqq205",
+    "m210": "zpqq210",
+    "m215": "zpqq215",
+    "m220": "zpqq220",
+    "m225": "zpqq225",
+    "m230": "zpqq230",
+    "m235": "zpqq235",
+    "m240": "zpqq240",
+    "m245": "zpqq245",
     "m250": "zpqq250",
     "b50": "zpbb50",
     "b55": "zpbb55",
@@ -349,6 +366,15 @@ short_to_long = {
     "b190": "zpbb190",
     "b195": "zpbb195",
     "b200": "zpbb200",
+    "b205": "zpbb205",
+    "b210": "zpbb210",
+    "b215": "zpbb215",
+    "b220": "zpbb220",
+    "b225": "zpbb225",
+    "b230": "zpbb230",
+    "b235": "zpbb235",
+    "b240": "zpbb240",
+    "b245": "zpbb245",
     "b250": "zpbb250",
 }
 
@@ -362,6 +388,8 @@ sys_types = {
     "pileup_weight": "lnN",
     "Z_d2kappa_EW": "lnN",
     "Z_d3kappa_EW": "lnN",
+    "W_d2kappa_EW": "lnN",
+    "W_d3kappa_EW": "lnN",
     "d1kappa_EW": "lnN",
     "d1K_NLO": "lnN",
     "d2K_NLO": "lnN",
@@ -369,13 +397,14 @@ sys_types = {
     "L1Prefiring": "lnN",
     "scalevar_7pt": "lnN",
     "scalevar_3pt": "lnN",
-    "mu_trigger": "lnN",
-    "mu_isoweight": "lnN",
-    "mu_idweight": "lnN",
+    "muotrig": "lnN",
+    "muoiso": "lnN",
+    "muoid": "lnN",
     "HEM18": "lnN",
-    "btagSF_hfstats1" : "lnN",
-    "btagSF_hfstats2" : "lnN",
-    "btagSF" : "lnN",
+    "btagSF_heavy_correlated" : "lnN",
+    "btagSF_light_correlated" : "lnN",
+    f"btagSF_heavy_{args.year}" : "lnN",
+    f"btagSF_light_{args.year}" : "lnN",
 
 }
 
@@ -534,10 +563,10 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
     return
 
-isinterp = signals[0] in ["m"+str(x) for x in range(40,350,5)] and signals[0] not in all_signals
-if isinterp:
-    log.debug(f"m {signals[0]} is interpolated signal")
-    root_file_signals = uproot.open("signals_interpolated_systs.root")
+#isinterp = signals[0] in ["m"+str(x) for x in range(40,350,5)] and signals[0] not in all_signals
+#if isinterp:
+#    log.debug(f"m {signals[0]} is interpolated signal")
+root_file_signals = uproot.open(args.root_file.replace(".root","_interpolated.root"))
 root_fn_mu = args.root_file_mu
 root_fn = args.root_file
 print(root_fn_mu,root_fn)
@@ -558,14 +587,14 @@ def get_templ(
 ):
 
     if muon:
-        hist_str = f"CR1_{sample}_{tagger}_{region}"
+        hist_str = f"CR1_ptbin5_{sample}_{tagger}_{region}"
     else:
         hist_str = f"SR_{sample}_ptbin{ptbin}_{tagger}_{region}"
     if syst is not None:
         hist_str = hist_str + "__" + syst
     if muon:
         hist = root_file_mu[hist_str]
-    elif isinterp and ("zpqq" in sample or "zpbb" in sample):
+    elif "zpqq" in sample or "zpbb" in sample:
         hist = root_file_signals[hist_str]
     else:
         hist = root_file[hist_str] 
@@ -704,26 +733,29 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         "CMS_HEM_{}".format(args.year), sys_types["HEM18"]
     )
     # don't have mu for now
-    sys_shape_dict["mu_trigger"] = rl.NuisanceParameter(
-        "CMS_mu_trigger_{}".format(args.year), sys_types["mu_trigger"]
+    sys_shape_dict["muotrig"] = rl.NuisanceParameter(
+        "CMS_mu_trigger_{}".format(args.year), sys_types["muotrig"]
     )
-    sys_shape_dict["mu_isoweight"] = rl.NuisanceParameter(
-        "CMS_mu_isoweight_{}".format(args.year), sys_types["mu_isoweight"]
+    sys_shape_dict["muoiso"] = rl.NuisanceParameter(
+        "CMS_mu_isoweight_{}".format(args.year), sys_types["muoiso"]
     )
-    sys_shape_dict["mu_idweight"] = rl.NuisanceParameter(
-        "CMS_mu_idweight_{}".format(args.year), sys_types["mu_idweight"]
+    sys_shape_dict["muoid"] = rl.NuisanceParameter(
+        "CMS_mu_idweight_{}".format(args.year), sys_types["muoid"]
     )
-    sys_shape_dict["btagSF"] = rl.NuisanceParameter(
-        "CMS_btagSF_{}".format(args.year), sys_types["btagSF"]
+    sys_shape_dict["btagSF_heavy_correlated"] = rl.NuisanceParameter(
+        "CMS_btagSF_heavy_correlated", sys_types["btagSF_heavy_correlated"]
     )
-    sys_shape_dict["btagSF_hfstats1"] = rl.NuisanceParameter(
-        "CMS_btagSF_hfstats1_{}".format(args.year), sys_types["btagSF_hfstats1"]
+    sys_shape_dict["btagSF_light_correlated"] = rl.NuisanceParameter(
+        "CMS_btagSF_light_correlated", sys_types["btagSF_light_correlated"]
     )
-    sys_shape_dict["btagSF_hfstats2"] = rl.NuisanceParameter(
-        "CMS_btagSF_hfstats2_{}".format(args.year), sys_types["btagSF_hfstats2"]
+    sys_shape_dict[f"btagSF_heavy_{args.year}"] = rl.NuisanceParameter(
+        "CMS_btagSF_heavy_{}".format(args.year), sys_types[f"btagSF_heavy_{args.year}"]
+    )
+    sys_shape_dict[f"btagSF_light_{args.year}"] = rl.NuisanceParameter(
+        "CMS_btagSF_light_{}".format(args.year), sys_types[f"btagSF_light_{args.year}"]
     )
 
-    for EW_syst in ['d1kappa_EW', 'Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO']:
+    for EW_syst in ['d1kappa_EW', 'W_d2kappa_EW', 'W_d3kappa_EW','Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO']:
         sys_shape_dict[EW_syst] = rl.NuisanceParameter('CMS_{}'.format(EW_syst), sys_types[EW_syst])
 
     # sys_shape_dict['scalevar_7pt'] = rl.NuisanceParameter('CMS_th_scale7pt', sys_types['scalevar_7pt'])
@@ -740,9 +772,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
     sys_lumi_1718 = rl.NuisanceParameter("CMS_lumi_13TeV_1718", "lnN")
 
-    sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
+    if args.decorr_scale:
+        for iptbin in range(0,5):
+            sys_shape_dict[f"CMS_scale_{args.year}_ptbin{iptbin}"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_ptbin{iptbin}", 'shape'
+            )
+    else:
+        sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
-
+    print("Systs being considered =", sys_shape_dict.keys())
     tqqeffSF = rl.IndependentParameter("tqqeffSF", 1.0, 0, 10)
     tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF", 1.0, 0, 10)
     tqqnormSF = rl.IndependentParameter("tqqnormSF", 1.0, 0, 10)
@@ -753,7 +791,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
     # with open(args.pickle, "rb") as f:
     #    df = pickle.load(f)
-    ptbins = np.array([525, 575, 625, 700, 800, 1200])
+    if "2017" in args.year: 
+        ptmin=525.0
+        ptbins = np.array([525, 575, 625, 700, 800, 1200])
+    else:
+        ptmin=500.
+        ptbins = np.array([500,550,600,700,800,1200])
     if args.four_pt_bins:
         ptbins = np.array([525, 575, 625, 700, 1200])
     npt = len(ptbins) - 1
@@ -769,7 +812,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         indexing="ij",
     )
     rhopts = 2 * np.log(msdpts / ptpts)
-    ptscaled = (ptpts - 525.0) / (1200.0 - 525.0)
+    ptscaled = (ptpts - ptmin) / (1200.0 - ptmin)
     rhoscaled = (rhopts - (-5.5)) / ((-2.0) - (-5.5))
     validbins = (rhoscaled >= 0.0) & (rhoscaled <= 1.0)
     rhoscaled[~validbins] = 1  # we will mask these out later
@@ -781,8 +824,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         qcdmodels = [rl.Model("qcdmodel0"), rl.Model("qcdmodel1")]
         qcd_counts_pass = [0.0, 0.0]
         qcd_counts_fail = [0.0, 0.0]
-        pass_regs = ["pass_highbvl", "pass_lowbvl"]
-        fail_regs = ["fail", "fail"]
+        pass_regs = ["pass_T_bvl_pass_L", "pass_T_bvl_fail_L"]
+        fail_regs = ["fail_T", "fail_T"]
  
         if args.qcd_ftest or args.ftest:
             if args.highbvl:
@@ -1097,14 +1140,18 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         "JER",
                         "jet_trigger",
                         "pileup_weight",
-                        "L1Prefiring",
                         'Z_d2kappa_EW', 'Z_d3kappa_EW', 
-                        #'W_d2kappa_EW', 'W_d3kappa_EW', 
+                        'W_d2kappa_EW', 'W_d3kappa_EW', 
                         'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
-                        'btagSF_hfstats2', 'btagSF_hfstats1', 'btagSF', 
+                        'btagSF_heavy_correlated','btagSF_light_correlated',
+                        f'btagSF_heavy_{args.year}', f'btagSF_light_{args.year}', 
                         #'scalevar_7pt', 'scalevar_3pt',
                         'UES',#'btagEffStat', 'btagWeight',
                     ]
+                    if "2016" in args.year or "2017" in args.year: 
+                        sys_names.append("L1Prefiring")
+                    if "2018" in args.year:
+                        sys_names.append("HEMissue") 
                     if stype == rl.Sample.SIGNAL : #and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
@@ -1117,12 +1164,17 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             continue
                         if ("W_d" in sys_name) and sName not in ["wqq","wlnu"]:
                             continue
+                        name_up = sys_name_updown[sys_name.replace(args.year,"year")][1]
+                        name_down = sys_name_updown[sys_name.replace(args.year,"year")][0]
+                        if "year" in name_up:
+                            name_up = name_up.replace("year",args.year)
+                            name_down = name_down.replace("year",args.year)
                         if sys_shape_dict[sys_name].combinePrior == "lnN":
                             _sys_ef = shape_to_num(
                                 region,
                                 sName,
                                 ptbin,
-                                sys_name_updown[sys_name],
+                                [name_down,name_up],#sys_name_updown[sys_name],
                                 mask,
                                 bound=None if "scalevar" not in sys_name else 0.25,
                                 inflate=False,
@@ -1141,7 +1193,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
                         #    log.info("Skipping sample {}, scale systematic would be empty".format(sName))
                         #    continue
-                        sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling) 
+                        if args.decorr_scale: 
+                            log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_ptbin{ptbin} on sample {sName}.") 
+                            sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                        else:
+                            sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling) 
                         _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
                         _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
                         #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
@@ -1226,8 +1282,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     if args.do_systematics and not args.ftest:
         # Do 2-region SFs
         for ptbin in range(npt):
-            ch_pass = model[f"ptbin{ptbin}passhighbvl"]
-            ch_fail = model[f"ptbin{ptbin}passlowbvl"]
+            log.debug(f"Making two-pronged SFs for {ptbin}. Channels are {model.channels}.")
+            ch_pass = model[f"ptbin{ptbin}passTbvlpassL"]
+            ch_fail = model[f"ptbin{ptbin}passTbvlfailL"]
             bb_samples = ["zbb", "hbb",]
             if not args.ftest: bb_samples += [bsiggy]
             for sName in bb_samples:
@@ -1235,10 +1292,10 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 sample_fail = ch_fail[f"{sName}"]
 
                 template_pass_pass = get_templ(
-                        "pass_highbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "pass_T_bvl_pass_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 template_pass_fail = get_templ(
-                        "pass_lowbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "pass_T_bvl_fail_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 yield_pass = template_pass_pass[0].sum()
                 yield_fail = template_pass_fail[0].sum()
@@ -1253,15 +1310,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     # Scale fail
                     sf_flipped, sfup, sfdn = flipSF(sf, unc, yield_pass, yield_fail)
                     sample_fail.scale(sf_flipped)                
-                    sample_fail.setParamEffect(sys_bbeff, sfup, sfdn)
+                    sample_fail.setParamEffect(sys_bbeff, 0.9,1.1)#sfup, sfdn)
                     logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf}, sfunc_nominal: {unc}, card_unc: {sfunc}/{1/sfunc:.3f}")
                     logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped}, sfunc_nominal: {unc}, card_unc: {sfup}/{sfdn:.3f}")
     if args.do_systematics and not args.ftest:        
         # Do 3-region SFs
         for ptbin in range(npt):
-            ch_fail = model[f"ptbin{ptbin}fail"]
-            ch_pass_pass = model[f"ptbin{ptbin}passhighbvl"]
-            ch_pass_fail = model[f"ptbin{ptbin}passlowbvl"]
+            ch_fail = model[f"ptbin{ptbin}failT"]
+            ch_pass_pass = model[f"ptbin{ptbin}passTbvlpassL"]
+            ch_pass_fail = model[f"ptbin{ptbin}passTbvlfailL"]
             qq_samples = ["wqq", "zqq", "zbb", "hbb", siggy]
             if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
@@ -1269,13 +1326,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 sample_pass_pass = ch_pass_pass[f"{sName}"]
                 sample_pass_fail = ch_pass_fail[f"{sName}"]
                 template_pass_pass = get_templ(
-                        "pass_highbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "pass_T_bvl_pass_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 template_pass_fail = get_templ(
-                        "pass_lowbvl", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "pass_T_bvl_fail_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 template_fail = get_templ(
-                        "fail", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "fail_T", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 yield_pass_pass = template_pass_pass[0].sum()
                 yield_pass_fail = template_pass_fail[0].sum()
@@ -1300,11 +1357,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         for ptbin in range(npt):
             passkey = f"ptbin{ptbin}pass"
             if args.highbvl:
-                passkey = f"ptbin{ptbin}passhighbvl"
-                histkey = "pass_highbvl"
+                passkey = f"ptbin{ptbin}passTbvlpassL"
+                histkey = "pass_T_bvl_pass_L"
             elif args.lowbvl:
-                passkey = f"ptbin{ptbin}passlowbvl"
-                histkey = "pass_lowbvl"
+                passkey = f"ptbin{ptbin}passTbvlfailL"
+                histkey = "pass_T_bvl_fail_L"
             failkey = f"ptbin{ptbin}fail"
             ch_fail = model[failkey]
             ch_pass = model[passkey]
@@ -1316,7 +1373,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         histkey, short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 template_fail = get_templ(
-                        "fail", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                        "fail_T", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 yield_pass = template_pass[0].sum()
                 yield_fail = template_fail[0].sum()
@@ -1335,9 +1392,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     log.info("Building QCD TF templates")    
     if args.tworeg and not (args.qcd_ftest or args.ftest):
         for ptbin in range(npt):
-            failCh = model[f"ptbin{ptbin}fail"]
-            passChpass = model[f"ptbin{ptbin}passhighbvl"]
-            passChfail = model[f"ptbin{ptbin}passlowbvl"]
+            failCh = model[f"ptbin{ptbin}failT"]
+            passChpass = model[f"ptbin{ptbin}passTbvlpassL"]
+            passChfail = model[f"ptbin{ptbin}passTbvlfailL"]
 
             # Fail region
             qcdparams = np.array(
@@ -1362,13 +1419,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 * (1 + sigmascale / np.maximum(1.0, np.sqrt(initial_qcd))) ** qcdparams
             )
             fail_qcd = rl.ParametericSample(
-                f"ptbin{ptbin}fail_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
+                f"ptbin{ptbin}failT_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
             )
             failCh.addSample(fail_qcd)
 
             # Transfer factor templates
             passpass_qcd = rl.TransferFactorSample(
-                f"ptbin{ptbin}passhighbvl_{args.year}_qcd",
+                f"ptbin{ptbin}passTbvlpassL_{args.year}_qcd",
                 rl.Sample.BACKGROUND,
                 all_tf_params[0][ptbin, :],
                 fail_qcd,
@@ -1376,7 +1433,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             passChpass.addSample(passpass_qcd)
 
             passfail_qcd = rl.TransferFactorSample(
-                f"ptbin{ptbin}passlowbvl_{args.year}_qcd",
+                f"ptbin{ptbin}passTbvlfailL_{args.year}_qcd",
                 rl.Sample.BACKGROUND,
                 all_tf_params[1][ptbin, :],
                 fail_qcd,
@@ -1386,9 +1443,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         for ptbin in range(npt):
             passkey = f"ptbin{ptbin}pass"
             if args.highbvl:
-                passkey = f"ptbin{ptbin}passhighbvl"
+                passkey = f"ptbin{ptbin}passTbvlpassL"
             elif args.lowbvl:
-                passkey = f"ptbin{ptbin}passlowbvl"
+                passkey = f"ptbin{ptbin}passTbvlfailL"
             failkey = f"ptbin{ptbin}fail"
             failCh = model[failkey]
             passCh = model[passkey]
@@ -1486,11 +1543,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         else:
             passkey = f"ptbin{ptbin}pass"
             if args.highbvl:
-                passkey = f"ptbin{ptbin}passhighbvl"
+                passkey = f"ptbin{ptbin}pass_T_bvl_pass_L"
             elif args.lowbvl:
-                passkey = f"ptbin{ptbin}passlowbvl"
+                passkey = f"ptbin{ptbin}pass_T_bvl_fail_L"
             for ptbin in range(npt):
-                failCh = model[f'ptbin{ptbin}fail']
+                failCh = model[f'ptbin{ptbin}fail_T']
                 passCh = model[passkey]
                 tqqpass = passCh['tt']
                 tqqfail = failCh['tt']
@@ -1559,10 +1616,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         continue
 
                     sys_names = [
-                        'JES', 'JER', 'mu_trigger', 'mu_idweight', # 'mu_isoweight', #'btagEffStat', 'btagWeight', 'pileup_weight',
-                        #'Z_d2kappa_EW', 'Z_d3kappa_EW',  
-                        'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',#'UES',
+                        'JES', 'JER', 'muotrig', 'muoid','muoiso', 'pileup_weight',
+                        #'UES',
                         'L1Prefiring',
+                        'btagSF_heavy_correlated','btagSF_light_correlated',
+                        f'btagSF_heavy_{args.year}', f'btagSF_light_{args.year}', 
                     ]
 
                     for sys_name in sys_names:
@@ -1572,12 +1630,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             continue
                         if ("Z_d" in sys_name) and sName not in ["zqq","dy"]:
                             continue
+                        name_up = sys_name_updown[sys_name.replace(args.year,"year")][1]
+                        name_down = sys_name_updown[sys_name.replace(args.year,"year")][0]
                         if sys_shape_dict[sys_name].combinePrior == "lnN":
                             _sys_ef = shape_to_num(
                                 region,
                                 sName,
                                 0,
-                                sys_name_updown[sys_name],
+                                [name_down,name_up],#sys_name_updown[sys_name],
                                 None,
                                 bound=None if "scalevar" not in sys_name else 0.25,
                                 inflate=False,
