@@ -144,10 +144,14 @@ for smp in ["zpqq", "zpbb"]:
                 for syst in sys_names:
                     mass_hists_down = []
                     mass_hists_up = []
-                    if "L1Pre" in syst and "2018" in args.year: continue
                     if "muo" in syst: continue
                     print(f"Making hist for samp {interp}, region {region}, systematic {syst}.")
-                    if syst in ['W_d2kappa_EW', 'W_d3kappa_EW','Z_d2kappa_EW', 'Z_d3kappa_EW','d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO','muo']: continue
+                    if "HEM" in syst and args.year != "2018" : continue
+                    if "L1Pre" in syst and args.year == "2018" : continue
+                    #print(isamp in ["zqq","dy"])
+                    if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
+                    if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
+                    if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue
                     syst_name_up = sys_name_updown[syst][0]
                     syst_name_down = sys_name_updown[syst][1]
     
