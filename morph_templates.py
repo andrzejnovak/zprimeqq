@@ -142,6 +142,8 @@ for smp in ["zpqq", "zpbb"]:
 
                 for syst in sys_names:
                     if "muo" in syst: continue
+                    if "HEM" in syst and args.year != "2018" : continue
+                    if "L1Pre" in syst and args.year == "2018" : continue
                     #print(isamp in ["zqq","dy"])
                     if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
                     if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue

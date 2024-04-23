@@ -53,18 +53,21 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
 
-OPATH=f"results/limits/{args.postfix}/pnmd2prong_0p01/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
+OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
 print(OPATH)
 templates = {
     "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/17Apr24-SR-2018-10pct-9/results/TEMPLATES_scale_full_lumi.root",
 }
 
 templates_mu = {
     "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Mar24-split-CR1-3/results/TEMPLATES.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
 }
 
 tf_orders = {
-    "2017" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 "
+    "2017" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
+    "2018" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
 }
 
 taskname="limit_"+str(args.sigmass)+"_"+args.postfix
@@ -85,7 +88,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong_0p01 --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]}"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''}"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")

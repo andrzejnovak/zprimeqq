@@ -208,8 +208,8 @@ SF = {
         "V_SF": 0.802,
         "V_SF_ERR": 0.043,
         "SHIFT_SF": 0.620,
-        #"SHIFT_SF_ERR": 0.272,
-        "SHIFT_SF_ERR": 1.0,
+        "SHIFT_SF_ERR": 0.272,
+        #"SHIFT_SF_ERR": 1.0,
         "SMEAR_SF": 1.22,
         "SMEAR_SF_ERR":0.112,
     },
@@ -226,6 +226,12 @@ SF = {
 }
 tagger = args.tagger
 
+era_dict = {
+    "2016" : "2016postVFP",
+    "2016APV" : "2017preVFP",
+    "2017" : "2017",
+    "2018" : "2018",
+}
 def badtemp_ma(hvalues, eps=0.0000001, mask=None):
     # Need minimum size & more than 1 non-zero bins
     tot = np.sum(hvalues[mask])
@@ -400,11 +406,11 @@ sys_types = {
     "muotrig": "lnN",
     "muoiso": "lnN",
     "muoid": "lnN",
-    "HEM18": "lnN",
+    "HEMissue": "lnN",
     "btagSF_heavy_correlated" : "lnN",
     "btagSF_light_correlated" : "lnN",
-    f"btagSF_heavy_{args.year}" : "lnN",
-    f"btagSF_light_{args.year}" : "lnN",
+    f"btagSF_heavy_{era_dict[args.year]}" : "lnN",
+    f"btagSF_light_{era_dict[args.year]}" : "lnN",
 
 }
 
@@ -665,9 +671,9 @@ def shape_to_num(
 
     syst_name_up = syst_down_up[1]
     syst_name_down = syst_down_up[0]
-    if "year" in syst_name_up:
-        syst_name_up = syst_name_up.replace("year",args.year)
-        syst_name_down = syst_name_down.replace("year",args.year)
+    if "2016" in syst_name_up or "2017" in syst_name_up or "2018" in syst_name_up:
+        syst_name_up = syst_name_up.replace(args.year,era_dict[args.year])
+        syst_name_down = syst_name_down.replace(args.year,era_dict[args.year])
 
     _up = get_templ(
         region, sName, ptbin, tagger, syst=syst_name_up, muon=muon, nowarn=True
@@ -729,8 +735,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         "CMS_PU_{}".format(args.year), sys_types["pileup_weight"]
     )
     # don't have HEM for now
-    sys_shape_dict["HEM18"] = rl.NuisanceParameter(
-        "CMS_HEM_{}".format(args.year), sys_types["HEM18"]
+    sys_shape_dict["HEMissue"] = rl.NuisanceParameter(
+        "CMS_HEM_{}".format(args.year), sys_types["HEMissue"]
     )
     # don't have mu for now
     sys_shape_dict["muotrig"] = rl.NuisanceParameter(
@@ -748,11 +754,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_shape_dict["btagSF_light_correlated"] = rl.NuisanceParameter(
         "CMS_btagSF_light_correlated", sys_types["btagSF_light_correlated"]
     )
-    sys_shape_dict[f"btagSF_heavy_{args.year}"] = rl.NuisanceParameter(
-        "CMS_btagSF_heavy_{}".format(args.year), sys_types[f"btagSF_heavy_{args.year}"]
+    sys_shape_dict[f"btagSF_heavy_{era_dict[args.year]}"] = rl.NuisanceParameter(
+        "CMS_btagSF_heavy_{}".format(era_dict[args.year]), sys_types[f"btagSF_heavy_{era_dict[args.year]}"]
     )
-    sys_shape_dict[f"btagSF_light_{args.year}"] = rl.NuisanceParameter(
-        "CMS_btagSF_light_{}".format(args.year), sys_types[f"btagSF_light_{args.year}"]
+    sys_shape_dict[f"btagSF_light_{era_dict[args.year]}"] = rl.NuisanceParameter(
+        "CMS_btagSF_light_{}".format(era_dict[args.year]), sys_types[f"btagSF_light_{era_dict[args.year]}"]
     )
 
     for EW_syst in ['d1kappa_EW', 'W_d2kappa_EW', 'W_d3kappa_EW','Z_d2kappa_EW', 'Z_d3kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO']:
@@ -1144,14 +1150,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         'W_d2kappa_EW', 'W_d3kappa_EW', 
                         'd1kappa_EW', 'd1K_NLO', 'd2K_NLO', 'd3K_NLO',
                         'btagSF_heavy_correlated','btagSF_light_correlated',
-                        f'btagSF_heavy_{args.year}', f'btagSF_light_{args.year}', 
+                        f'btagSF_heavy_{era_dict[args.year]}', f'btagSF_light_{era_dict[args.year]}', 
                         #'scalevar_7pt', 'scalevar_3pt',
                         'UES',#'btagEffStat', 'btagWeight',
                     ]
                     if "2016" in args.year or "2017" in args.year: 
                         sys_names.append("L1Prefiring")
-                    if "2018" in args.year:
-                        sys_names.append("HEMissue") 
+                    #if "2018" in args.year:
+                    #    sys_names.append("HEMissue") 
                     if stype == rl.Sample.SIGNAL : #and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
@@ -1164,8 +1170,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             continue
                         if ("W_d" in sys_name) and sName not in ["wqq","wlnu"]:
                             continue
-                        name_up = sys_name_updown[sys_name.replace(args.year,"year")][1]
-                        name_down = sys_name_updown[sys_name.replace(args.year,"year")][0]
+                        name_up = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][1]
+                        name_down = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][0]
                         if "year" in name_up:
                             name_up = name_up.replace("year",args.year)
                             name_down = name_down.replace("year",args.year)
@@ -1187,7 +1193,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     _extra_scaling = 4.
                     if sName not in ['qcd', 'dy', 'wlnu',"tt","st",]:
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
-                        realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName)
+                        realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
                         _down = mtempl.get(shift=-realshift)
                         #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
@@ -1220,7 +1226,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 yields = []
                 if args.qcd_ftest:
                     include_samples = ["QCD"]
-                elif args.h_sensitivity:
+                #elif args.h_sensitivity:
+                else:
                     include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb","QCD"]
                 for sName in include_samples:
                     _sample = get_templ(
@@ -1618,10 +1625,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     sys_names = [
                         'JES', 'JER', 'muotrig', 'muoid','muoiso', 'pileup_weight',
                         #'UES',
-                        'L1Prefiring',
+                        #'L1Prefiring',
                         'btagSF_heavy_correlated','btagSF_light_correlated',
-                        f'btagSF_heavy_{args.year}', f'btagSF_light_{args.year}', 
+                        f'btagSF_heavy_{era_dict[args.year]}', f'btagSF_light_{era_dict[args.year]}', 
                     ]
+                    if "2016" in args.year or "2017" in args.year: 
+                        sys_names.append("L1Prefiring")
 
                     for sys_name in sys_names:
                         if (
@@ -1630,8 +1639,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             continue
                         if ("Z_d" in sys_name) and sName not in ["zqq","dy"]:
                             continue
-                        name_up = sys_name_updown[sys_name.replace(args.year,"year")][1]
-                        name_down = sys_name_updown[sys_name.replace(args.year,"year")][0]
+                        if ("W_d" in sys_name) and sName not in ["wqq","wlnu"]:
+                            continue
+                        name_up = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][1]
+                        name_down = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][0]
+                        if "year" in name_up:
+                            name_up = name_up.replace("year",args.year)
+                            name_down = name_down.replace("year",args.year)
                         if sys_shape_dict[sys_name].combinePrior == "lnN":
                             _sys_ef = shape_to_num(
                                 region,
@@ -1653,7 +1667,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     
             
             data_obs = get_templ(
-                    region, f"SingleMuon_{args.year}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon,
+                    region, f"SingleMuon_{era_dict[args.year]}", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon,
             )
             ch.setObservation(data_obs[0:3])
         if args.tworeg and not args.ftest:

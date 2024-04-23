@@ -9,7 +9,7 @@ parser.add_argument("--root_path", action='store', type=str, default="",help="Pa
 parser.add_argument("--root_path_mu", action='store', type=str, default="",help="Path to ROOT holding single muon templates.")
 parser.add_argument("--is_blinded", action='store_true', help="Blinded dataset.")
 parser.add_argument("--scale_full_lumi", action='store_true', help="Scale 10pct dataset to full lumi.")
-parser.add_argument("--year", action='store', choices=["2016APV", "2016", "2017", "2018","fullrun2"], type=str, help="Year to run on")
+parser.add_argument("--year", action='store', choices=["2016preVFP", "2016postVFP", "2017", "2018","fullrun2"], type=str, help="Year to run on")
 args = parser.parse_args()
 
 
@@ -121,6 +121,8 @@ if args.root_path_mu:
                 make_templates(args.root_path_mu,region,isamp,5,tagger,syst=None,muon=True,nowarn=False,year="2017")
                 if "SingleMuon" in isamp: continue
                 for syst in sys_names:
+                    if "L1Pre" in syst and args.year=="2018" : continue
+                    if "HEM" in syst and args.year!="2018": continue
                     if syst in ["jet_trigger","UES"]: continue
                     if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
                     if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
