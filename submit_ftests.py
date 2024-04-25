@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', default="FTests/mconly16")
     parser.add_argument('--opath', required=True,type=str,)
     parser.add_argument('--outplots', default="Ftests/plots")
-    parser.add_argument('--root_file', required=True, type=str, help="Path to ROOT files containing templates")
+    parser.add_argument('--root_file', required=False, type=str, help="Path to ROOT files containing templates")
     parser.add_argument('--root_file_mu', required=False, type=str, help="Path to ROOT files containing templates")
 
     parser_mc = parser.add_mutually_exclusive_group(required=True)
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--is_blinded', action='store_true', help='')
     parser.add_argument('--param', type=str, choices=['bern', 'cheby', 'exp'], default='bern')
 
-    parser.add_argument('--tagger',type=str, choices=['pnmd2prong_ddt','pnmd2prong_0p05','pnmd2prong_0p01',],required=True)
+    parser.add_argument('--tagger',type=str, choices=['pnmd2prong',],required=True)
     parser.add_argument('--make', action='store_true', help='')
     parser.add_argument('--build', action='store_true', help='')
 
@@ -54,7 +54,23 @@ if __name__ == '__main__':
     else:
         basis = " "
     if args.tworeg and not (args.highbvl or args.lowbvl):
-        raise RuntimeError("Need args.highbvl or args.lowbvl for f-test") 
+        raise RuntimeError("Need args.highbvl or args.lowbvl for f-test")
+
+    templates = {
+        "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016APV-SR/results/TEMPLATES.root",
+        "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016-SR/results/TEMPLATES.root",
+        "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2017-SR/results/TEMPLATES.root",
+        "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
+        #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
+    }
+    
+    templates_mu = {
+        "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES.root",
+        "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES.root",
+        "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES.root",
+        "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
+    }
+ 
     if args.make:
         # Made workspaces
         for pt in range(0, rng_pt + 1):
@@ -62,14 +78,14 @@ if __name__ == '__main__':
                 ###I don't need just MC templates?
                 if args.mc:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --scale_qcd --root_file_mu {args.root_file_mu} "
+                        f"python3 rhalphalib_zprime.py --pseudo --year {args.year} --root_file {templates[args.year]} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --tagger {args.tagger} --qcd_ftest --root_file_mu {templates_mu[args.year]} "
                         + (" --highbvl" if args.highbvl else "") 
                         + (" --lowbvl" if args.lowbvl else "")
                         + (" --tworeg" if args.tworeg else "") 
                     ) 
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {args.root_file} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {args.root_file_mu} --muonCR "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {templates[args.year]} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {templates_mu[args.year]} --muonCR "
                         #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muonCR "
                         + (" --is_blinded " if args.is_blinded else "")
                         + (" --highbvl" if args.highbvl else "") 

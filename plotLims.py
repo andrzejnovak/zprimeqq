@@ -28,7 +28,7 @@ parser.add_argument('--rb', dest='rb', action='store_true',help='b-limit')
 
 args = parser.parse_args()
 
-masses = [55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,165,170,175,180,185,190,195,200]
+masses = [55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,165,170,175,180,185,190,195,200,205,210,215,220,225,230,235,240,245,250]
 
 def format_func(value, tick_number):
     # format the tick as plain, not scientific
@@ -102,7 +102,9 @@ def get_graphs():
     hi1 = []
     hi2 = []
     obs = [] 
+    filled_masses = [] 
     for mass in masses:
+      try:
         if args.rb:
             limits = read_limits(f"{args.ipath}/m{mass}/m{mass}_model/higgsCombiner_b.AsymptoticLimits.mH120.root")
         else:
@@ -116,9 +118,13 @@ def get_graphs():
         med.append(math.sqrt(limits[2]*fac/theory))
         hi1.append(math.sqrt(limits[3]*fac/theory))
         hi2.append(math.sqrt(limits[4]*fac/theory))
+        filled_masses.append(mass)
         if args.observed:
             assert(len(limits)>5)
             obs.append(math.sqrt(limits[5]*fac/theory))
+      except:
+        print("No mass {}".format(mass))
+        pass
     fig,ax = plt.subplots(figsize=(8,8))
     ax.set_yscale("log")    
     hep.cms.label(year=args.year,data=False if args.asimov else True,lumi=args.lumi,fontsize=17)
@@ -129,9 +135,9 @@ def get_graphs():
     #ax.yaxis.set_major_locator(LogLocator(base=10, numticks=4))
     #ax.yaxis.set_minor_locator(LogLocator(base=10, numticks=5))
     ax.set_yticks([0.04,0.05,0.07,0.1,0.14,0.2,0.5,1.0],[0.04,0.05,0.07,0.1,0.14,0.2,0.5,1.0])
-    ax.fill_between(masses,lo2,hi2,color='gold',label="Expected $\pm 2 \sigma$")
-    ax.fill_between(masses,lo1,hi1,color='limegreen',label="Expected $\pm 1 \sigma$")
-    ax.plot(masses,med,color='black',linestyle="--",linewidth=1.5,label="Expected")
+    ax.fill_between(filled_masses,lo2,hi2,color='gold',label="Expected $\pm 2 \sigma$")
+    ax.fill_between(filled_masses,lo1,hi1,color='limegreen',label="Expected $\pm 1 \sigma$")
+    ax.plot(filled_masses,med,color='black',linestyle="--",linewidth=1.5,label="Expected")
     if args.observed:
         ax.plot(masses,obs,color='black',linestyle="-",linewidth=1.5,label="Observed")
     if args.rb:
@@ -140,7 +146,7 @@ def get_graphs():
         ax.set_ylabel("$g'_{q}$")
     ax.set_xlabel("Z' mass (GeV)")
     ax.set_ylim(min(lo2)*0.7,max(hi2)*2)
-    ax.set_xlim(min(masses),max(masses)) 
+    ax.set_xlim(min(filled_masses),max(filled_masses)) 
     
     plt.tight_layout()
     plt.legend(loc="upper left",fontsize=15)

@@ -127,7 +127,10 @@ parser.add_argument(
     "--do_systematics", action="store_true", help="Include systematics."
 )
 parser.add_argument(
-    "--decorr_scale", action="store_true", help="Decorrelate scale by pt bin."
+    "--decorr_scale_pt", action="store_true", help="Decorrelate scale by pt bin."
+)
+parser.add_argument(
+    "--decorr_scale_cat", action="store_true", help="Decorrelate scale highbvl and lowbvl."
 )
 
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
@@ -227,8 +230,8 @@ SF = {
 tagger = args.tagger
 
 era_dict = {
+    "2016APV" : "2016preVFP",
     "2016" : "2016postVFP",
-    "2016APV" : "2017preVFP",
     "2017" : "2017",
     "2018" : "2018",
 }
@@ -778,7 +781,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
     sys_lumi_1718 = rl.NuisanceParameter("CMS_lumi_13TeV_1718", "lnN")
 
-    if args.decorr_scale:
+    if args.decorr_scale_cat:
+        sys_shape_dict[f"CMS_scale_{args.year}_highbvl"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_highbvl", 'shape'
+        )
+        sys_shape_dict[f"CMS_scale_{args.year}_lowbvl"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_lowbvl", 'shape'
+        )
+
+    elif args.decorr_scale_pt:
         for iptbin in range(0,5):
             sys_shape_dict[f"CMS_scale_{args.year}_ptbin{iptbin}"] = rl.NuisanceParameter(
                 f"CMS_scale_{args.year}_ptbin{iptbin}", 'shape'
@@ -1131,7 +1142,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     sample.setParamEffect(
                         sys_lumi_correlated, lumi_correlated_dict_unc[args.year]
                     )
-                    if args.year != "2016":
+                    if "2016" not in args.year:
                         sample.setParamEffect(
                             sys_lumi_1718, lumi_1718_dict_unc[args.year]
                         )
@@ -1156,8 +1167,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     ]
                     if "2016" in args.year or "2017" in args.year: 
                         sys_names.append("L1Prefiring")
-                    #if "2018" in args.year:
-                    #    sys_names.append("HEMissue") 
+                    if "2018" in args.year:
+                        sys_names.append("HEMissue") 
                     if stype == rl.Sample.SIGNAL : #and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
@@ -1191,7 +1202,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
                     mtempl = AffineMorphTemplate(templ)
                     _extra_scaling = 4.
-                    if sName not in ['qcd', 'dy', 'wlnu',"tt","st",]:
+                    if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] and "pass" in region:
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
                         realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
@@ -1199,7 +1210,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
                         #    log.info("Skipping sample {}, scale systematic would be empty".format(sName))
                         #    continue
-                        if args.decorr_scale: 
+                        if args.decorr_scale_cat:
+                            if "pass_T_bvl_pass_L" in region:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_highbvl on sample {sName}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_highbvl"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                            elif "pass_T_bvl_fail_L" in region:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_lowbvl on sample {sName}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_lowbvl"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                        elif args.decorr_scale_pt: 
                             log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_ptbin{ptbin} on sample {sName}.") 
                             sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         else:
@@ -1218,7 +1236,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             if not args.pseudo:
                 data_obs = get_templ(
-                    region, f"JetHT_2017", ptbin, tagger, fourptbins=args.four_pt_bins
+                    region, f"JetHT_{era_dict[args.year]}", ptbin, tagger, fourptbins=args.four_pt_bins
                 )
                 if throwPoisson:
                     yields = np.random.poisson(yields)
@@ -1369,7 +1387,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             elif args.lowbvl:
                 passkey = f"ptbin{ptbin}passTbvlfailL"
                 histkey = "pass_T_bvl_fail_L"
-            failkey = f"ptbin{ptbin}fail"
+            failkey = f"ptbin{ptbin}failT"
             ch_fail = model[failkey]
             ch_pass = model[passkey]
             qq_samples = ["wqq", "zqq", "zbb", "hbb",] 
@@ -1453,7 +1471,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 passkey = f"ptbin{ptbin}passTbvlpassL"
             elif args.lowbvl:
                 passkey = f"ptbin{ptbin}passTbvlfailL"
-            failkey = f"ptbin{ptbin}fail"
+            failkey = f"ptbin{ptbin}failT"
             failCh = model[failkey]
             passCh = model[passkey]
 
@@ -1480,7 +1498,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 * (1 + sigmascale / np.maximum(1.0, np.sqrt(initial_qcd))) ** qcdparams
             )
             fail_qcd = rl.ParametericSample(
-                f"ptbin{ptbin}fail_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
+                f"ptbin{ptbin}failT_{args.year}_qcd", rl.Sample.BACKGROUND, msd, scaledparams
             )
             failCh.addSample(fail_qcd)
             pass_qcd = rl.TransferFactorSample(
@@ -1614,7 +1632,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 if args.do_systematics:
                     sample.setParamEffect(sys_lumi, lumi_dict_unc[args.year])
                     sample.setParamEffect(sys_lumi_correlated, lumi_correlated_dict_unc[args.year])
-                    if args.year != '2016':
+                    if '2016' not in args.year:
                         sample.setParamEffect(sys_lumi_1718, lumi_1718_dict_unc[args.year])
                     sample.setParamEffect(sys_eleveto, 1.005)
                     sample.setParamEffect(sys_tauveto, 1.005)

@@ -123,8 +123,8 @@ def fplot(fvals, f_data, ref, alt, year=2017, nbins=130, savename=None, mc=False
 def prep_data(infile, reg, mc,year, lowbvl=False, highbvl=False):
 
     if "pass" in reg:
-        if lowbvl: reg += "lowbvl"
-        if highbvl: reg += "highbvl"
+        if lowbvl: reg += "TbvlfailL"
+        if highbvl: reg += "TbvlpassL"
     print("prep_data",reg,mc,year,lowbvl,highbvl)
     #print("key",'shapes_prefit/{}/{}_qcd'.format(reg,year))
     prefit_qcd = infile['shapes_prefit/{}/{}_qcd'.format(reg,year)].values()

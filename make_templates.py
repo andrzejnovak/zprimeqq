@@ -19,7 +19,7 @@ with open("xsec.json") as f:
 
 
 
-def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=False,year="2017"):
+def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=False,year=""):
 
     def get_factor(f,subsample):
         factor = 0.
@@ -90,7 +90,7 @@ if args.root_path:
             for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L","pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 for iptbin in range(0,5):
                     print(f"Making hists for sample {isamp}, tagger {tagger}, region {region}, iptbin {iptbin}")
-                    make_templates(args.root_path,region,isamp,iptbin,tagger,syst=None,muon=False,nowarn=False,year="2017")
+                    make_templates(args.root_path,region,isamp,iptbin,tagger,syst=None,muon=False,nowarn=False,year=args.year)
                     if "JetHT" in isamp: continue
                     for syst in sys_names:
                         if "L1Pre" in syst and args.year=="2018" : continue
@@ -105,8 +105,8 @@ if args.root_path:
                         if "year" in syst_name_up:
                             syst_name_up = syst_name_up.replace('year',args.year)
                             syst_name_down = syst_name_down.replace('year',args.year)
-                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_up,muon=False,nowarn=False,year="2017")
-                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_down,muon=False,nowarn=False,year="2017")
+                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_up,muon=False,nowarn=False,year=args.year)
+                        make_templates(args.root_path,region,isamp,iptbin,tagger,syst=syst_name_down,muon=False,nowarn=False,year=args.year)
                 #break
     
 
@@ -118,7 +118,7 @@ if args.root_path_mu:
         for tagger in ["pnmd2prong"]:
             for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L","pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 print(isamp,isamplist,0,tagger,)
-                make_templates(args.root_path_mu,region,isamp,5,tagger,syst=None,muon=True,nowarn=False,year="2017")
+                make_templates(args.root_path_mu,region,isamp,5,tagger,syst=None,muon=True,nowarn=False,year=args.year)
                 if "SingleMuon" in isamp: continue
                 for syst in sys_names:
                     if "L1Pre" in syst and args.year=="2018" : continue
@@ -133,8 +133,9 @@ if args.root_path_mu:
                     if "year" in syst_name_up:
                         syst_name_up = syst_name_up.replace('year',args.year)
                         syst_name_down = syst_name_down.replace('year',args.year)
-                    make_templates(args.root_path_mu,region,isamp,0,tagger,syst=syst_name_up,muon=True,nowarn=False,year="2017")
-                    make_templates(args.root_path_mu,region,isamp,0,tagger,syst=syst_name_down,muon=True,nowarn=False,year="2017")
+                    make_templates(args.root_path_mu,region,isamp,0,tagger,syst=syst_name_up,muon=True,nowarn=False,year=args.year)
+                    make_templates(args.root_path_mu,region,isamp,0,tagger,syst=syst_name_down,muon=True,nowarn=False,year=args.year)
 
 output_file.Close()
+
 

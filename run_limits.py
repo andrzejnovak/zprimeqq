@@ -56,16 +56,23 @@ commands = []
 OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
 print(OPATH)
 templates = {
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/17Apr24-SR-2018-10pct-9/results/TEMPLATES_scale_full_lumi.root",
+    "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016APV-SR/results/TEMPLATES.root",
+    "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016-SR/results/TEMPLATES.root",
+    "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2017-SR/results/TEMPLATES.root",
+    "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
+    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
 }
 
 templates_mu = {
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Mar24-split-CR1-3/results/TEMPLATES.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES.root",
+    "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES.root",
+    "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES.root",
+    "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
 }
 
 tf_orders = {
+    "2016APV" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
+    "2016" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
     "2017" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
     "2018" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
 }
@@ -131,7 +138,10 @@ if args.run:
 
 
 lumi={
+  "2016APV" : 19.52,
+  "2016" : 16.81,
   "2017" : 41.5,
+  "2018" : 59.72,
 }
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
