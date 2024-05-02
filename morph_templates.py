@@ -1,11 +1,12 @@
 import ROOT as r
-
+from common import *
 from scipy.interpolate import interp1d
 import numpy as np
 import hist
 import argparse
 import uproot
 import scipy.stats
+import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description="Rhalphalib setup.")
 parser.add_argument(
     "--template_file", action="store", type=str, required=True, help="Path to template file ."
@@ -138,10 +139,13 @@ for smp in ["zpqq", "zpbb"]:
                 for param in nearest:
                     mass_hists.append(f[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}"].to_hist())
                 out = moment_morph(mass_hists, params=nearest, param_interp=interp)
-                odict[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}"] = out
+                odict[f"SR_{smp}{interp}_ptbin{ptbin}_pnmd2prong_{region}"] = out
 
                 for syst in sys_names:
+                    mass_hists_down = []
+                    mass_hists_up = []
                     if "muo" in syst: continue
+                    print(f"Making hist for samp {interp}, region {region}, systematic {syst}.")
                     if "HEM" in syst and args.year != "2018" : continue
                     if "L1Pre" in syst and args.year == "2018" : continue
                     #print(isamp in ["zqq","dy"])
@@ -155,14 +159,37 @@ for smp in ["zpqq", "zpbb"]:
                         syst_name_up = syst_name_up.replace('year',args.year)
                         syst_name_down = syst_name_down.replace('year',args.year)
                     for param in nearest:
-                        mass_hists.append(f[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}__{syst}"].to_hist())
+                        mass_hists_down.append(f[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}__{syst_name_down}"].to_hist())
+                        mass_hists_up.append(f[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}__{syst_name_up}"].to_hist())
     
                     # out = moment_morph(mass_hists, params=params, param_interp=interp)
-                    out = moment_morph(mass_hists, params=nearest, param_interp=interp)
-                    odict[f"SR_{smp}{param}_ptbin{ptbin}_pnmd2prong_{region}__{syst}"] = out
+                    outdown = moment_morph(mass_hists_down, params=nearest, param_interp=interp)
+                    outup = moment_morph(mass_hists_up, params=nearest, param_interp=interp)
+                    odict[f"SR_{smp}{interp}_ptbin{ptbin}_pnmd2prong_{region}__{syst_name_down}"] = outdown
+                    odict[f"SR_{smp}{interp}_ptbin{ptbin}_pnmd2prong_{region}__{syst_name_up}"] = outup
     
                     # break
     
+fig, axs = plt.subplots(6,6, sharex=True, sharey=True, figsize=(15, 15))
+fig.subplots_adjust(wspace=0, hspace=0)
+axs = axs.flatten()
+
+for interp, ax in zip(np.arange(50, 255, 5), axs):
+    odict[f'SR_zpqq{interp}_ptbin0_pnmd2prong_pass_T_bvl_fail_L'].plot(yerr=False, ax=ax)
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    plt.savefig("ptbin0_pnmd2prong_pass_T_bvl_fail_L.png")
+
+fig, axs = plt.subplots(6,6, sharex=True, sharey=True, figsize=(15, 15))
+fig.subplots_adjust(wspace=0, hspace=0)
+axs = axs.flatten()
+
+for interp, ax in zip(np.arange(50, 255, 5), axs):
+    odict[f'SR_zpbb{interp}_ptbin0_pnmd2prong_pass_T_bvl_pass_L'].plot(yerr=False, ax=ax)
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    plt.savefig("ptbin0_pnmd2prong_pass_T_bvl_pass_L.png")
+
 root_file = uproot.recreate(args.template_file.replace(".root","_interpolated.root"))
 for k, v in odict.items():
     if k not in f.keys():
