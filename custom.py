@@ -36,7 +36,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         #elif args.lowbvl:
         #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_0_*}}' --redefineSignalPOIs tf{year}_dataResidual_1_pt_par0_rho_par0".format(year=args.year)
     else:
-        overall_conf = f" " # --expectSignal=0 --freezeParameters r --setParameters r=0 --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "# --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "  
+        overall_conf = f" --expectSignal=0" # --freezeParameters r --setParameters r=0 --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "# --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "  
         #overall_conf = f" --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 --toysFrequentist "  
         #overall_conf = " --setParameters r=1 --toysFrequentist --freezeParameters r --setParameterRanges r=-10,10 "
         #overall_conf = " --setParameters r=1,z=1  --toysFrequentist --freezeParameters r,z --setParameterRanges r=-10,10:z=0.95,1.05 "

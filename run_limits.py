@@ -34,6 +34,10 @@ parser.add_argument('--asimov', dest='asimov', action='store_true',help='Is asim
 parser.add_argument('--frequentist', dest='frequentist', action='store_true',help='Is frequentist')
 parser.add_argument('--sigmass', dest='sigmass', action='store',type=int,help='signal mass')
 parser.add_argument('--condor', dest='condor', action='store_true',help='Run on condor')
+parser.add_argument('--lowbvl', dest='lowbvl', action='store_true',help='Run on lowbvl only')
+parser.add_argument('--highbvl', dest='highbvl', action='store_true',help='Run on highbvl only')
+parser.add_argument('--gq', dest='gq', action='store_true',help='Plot gq limit')
+parser.add_argument('--xsec', dest='xsec',action='store_true',help='Plot xsec limit')
 parser.add_argument('-p', dest='p', action='store_true',help='Parallel')
 #parser.add_argument('--injected_signal', dest='injected_signal', action='store',type=float,help='injected signal',required=True)
 #parser.add_argument('--param', dest='param', choices=["r","r_b","r_q",], action='store',type=str,help='Parameter of interest')
@@ -95,7 +99,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''}"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''}"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
@@ -145,7 +149,15 @@ lumi={
 }
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
-    cmd = "python3 plotLims.py --ipath {ipath} {observed} --gq --year {year} --lumi {lumi} {rb} {asimov}".format(ipath="/".join(OPATH.split("/")[:5]),year=args.year,lumi=lumi[args.year],rb="--rb" if args.r_b else "",asimov="--asimov" if args.asimov else "", observed="--observed" if not args.asimov else "")
+    cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov}".format(
+        ipath="/".join(OPATH.split("/")[:5]),
+        year=args.year,lumi=lumi[args.year],
+        rb="--rb" if args.r_b else "",
+        asimov="--asimov" if args.asimov else "", 
+        observed="--observed" if not args.asimov else "",
+        xsec="--xsec" if args.xsec else "", 
+        gq="--gq" if args.gq else "",
+    )
     commands.append(cmd) 
 if args.debug:
     for cmd in commands:
@@ -159,13 +171,13 @@ for cmd in commands:
     else:
         processes.append(subprocess.Popen(cmd, shell=True).wait())
 
-while sum([p.wait() is not None for p in processes]) < len(processes):
-    try:
-        time.sleep(1)
-        print([p.poll() is not None for p in processes])
-        print([p.wait() for p in processes])
-    except KeyboardInterrupt:
-        term = [p.terminate() for p in processes]
+#while sum([p.wait() is not None for p in processes]) < len(processes):
+#    try:
+#        time.sleep(1)
+#        print([p.poll() is not None for p in processes])
+#        print([p.wait() for p in processes])
+#    except KeyboardInterrupt:
+#        term = [p.terminate() for p in processes]
 
-    print("TIME:", time.strftime("%H:%M:%S", time.gmtime(time.time()-start)))
+#print("TIME:", time.strftime("%H:%M:%S", time.gmtime(time.time()-start)))
 

@@ -63,6 +63,14 @@ if __name__ == '__main__':
         "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
         #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
     }
+
+    templates_10pct = {
+        "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/17Apr24-SR-2016APV-10pct-3/results/TEMPLATES_blind.root",
+        "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/17Apr24-SR-2016-10pct-3/results/TEMPLATES_blind.root",
+        "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2017-SR/results/TEMPLATES.root",
+        "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/17Apr24-SR-2018-10pct-9/results/TEMPLATES_blind.root",
+        #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
+    }
     
     templates_mu = {
         "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES.root",
@@ -85,7 +93,7 @@ if __name__ == '__main__':
                     ) 
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {templates[args.year]} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {templates_mu[args.year]} --muonCR "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {templates_10pct[args.year]} --o {args.opath}{pt}{rho} --ipt {pt} --irho {rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {templates_mu[args.year]} --muonCR "
                         #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muonCR "
                         + (" --is_blinded " if args.is_blinded else "")
                         + (" --highbvl" if args.highbvl else "") 
@@ -93,8 +101,10 @@ if __name__ == '__main__':
                         + (" --tworeg" if args.tworeg else "") 
                         
                     )
-                    if args.year in ["2017"]:
+                    if args.year == "2017":
                         cmd += " --irhoMC 4 --iptMC 2 "
+                    if args.year == "2018":
+                        cmd += " --irhoMC 3,4 --iptMC 2,3 "
                     else:
                         raise ValueError(f"Dont have MC poly for year {args.year}!")
                 commands.append(cmd)

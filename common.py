@@ -75,6 +75,7 @@ sample_maps = {
     "zpbb250" : ["VectorZPrimeToBB_M250"],
     "zpbb300" : ["VectorZPrimeToBB_M300"],
 
+    "SingleMuon_2016preVFP" : ["SingleMuon_Run2016B_ver2_HIPM","SingleMuon_Run2016C_HIPM","SingleMuon_Run2016D_HIPM","SingleMuon_Run2016E_HIPM","SingleMuon_Run2016F_HIPM"],
     "SingleMuon_2016postVFP" : ["SingleMuon_Run2016F","SingleMuon_Run2016G","SingleMuon_Run2016H",],
     "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"],
     "SingleMuon_2018" : ["SingleMuon_Run2018A","SingleMuon_Run2018B","SingleMuon_Run2018C","SingleMuon_Run2018D"]
@@ -89,6 +90,7 @@ sample_maps_mu = {
     "dy"  : ["DYJetsToLL_HT-400To600","DYJetsToLL_HT-600To800","DYJetsToLL_HT-800To1200","DYJetsToLL_HT-1200To2500"],
     "st"  : ["ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8","ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8","ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8"],
     "wlnu" : ["WJetsToLNu_HT400to600","WJetsToLNu_HT600to800","WJetsToLNu_HT800to1200","WJetsToLNu_HT1200to2500","WJetsToLNu_HT2500toInf"],
+    "SingleMuon_2016preVFP" : ["SingleMuon_Run2016B_ver2_HIPM","SingleMuon_Run2016C_HIPM","SingleMuon_Run2016D_HIPM","SingleMuon_Run2016E_HIPM","SingleMuon_Run2016F_HIPM"],
     "SingleMuon_2016postVFP" : ["SingleMuon_Run2016F","SingleMuon_Run2016G","SingleMuon_Run2016H",],
     "SingleMuon_2017" : ["SingleMuon_Run2017B","SingleMuon_Run2017C","SingleMuon_Run2017D","SingleMuon_Run2017E","SingleMuon_Run2017F"],
     "SingleMuon_2018" : ["SingleMuon_Run2018A","SingleMuon_Run2018B","SingleMuon_Run2018C","SingleMuon_Run2018D"]
