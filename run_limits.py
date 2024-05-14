@@ -38,11 +38,11 @@ parser.add_argument('--lowbvl', dest='lowbvl', action='store_true',help='Run on 
 parser.add_argument('--highbvl', dest='highbvl', action='store_true',help='Run on highbvl only')
 parser.add_argument('--gq', dest='gq', action='store_true',help='Plot gq limit')
 parser.add_argument('--xsec', dest='xsec',action='store_true',help='Plot xsec limit')
+parser.add_argument('--decorr_scale_cat', dest='decorr_scale_cat',action='store_true',help='Decorrelate scale by category')
 parser.add_argument('-p', dest='p', action='store_true',help='Parallel')
 #parser.add_argument('--injected_signal', dest='injected_signal', action='store',type=float,help='injected signal',required=True)
 #parser.add_argument('--param', dest='param', choices=["r","r_b","r_q",], action='store',type=str,help='Parameter of interest')
 #parser.add_argument('--type', dest='type', choices=["toys","data"],type=str,help="toys or data")
-
 args = parser.parse_args()
 
 
@@ -56,13 +56,13 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
-
-OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
+print(args)
+OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
 print(OPATH)
 templates = {
-    "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016APV-SR/results/TEMPLATES.root",
-    "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2016-SR/results/TEMPLATES.root",
-    "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2017-SR/results/TEMPLATES.root",
+    "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES.root",
+    "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES.root",
+    "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES.root",
     "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
     #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
 }
@@ -75,10 +75,10 @@ templates_mu = {
 }
 
 tf_orders = {
-    "2016APV" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
-    "2016" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
-    "2017" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
-    "2018" : " --ipt 0 --irho 0 --iptMC 2 --irhoMC 4 ",
+    "2016APV" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
+    "2016" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
+    "2017" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,4 ",
+    "2018" : " --ipt 0,0 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
 }
 
 taskname="limit_"+str(args.sigmass)+"_"+args.postfix
@@ -89,7 +89,7 @@ overall_cmd = ""
 if args.asimov:
     overall_cmd += " -t -1 "
 if args.frequentist:
-    overall_cmd += " -t 1 --toysFrequentist " 
+    overall_cmd += " -t -1 --toysFrequentist " 
 
 if args.r:
     overall_cmd += " --redefineSignalPOIs r -d inclusive_workspace.root "
@@ -99,7 +99,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''}"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''}"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
@@ -108,9 +108,9 @@ if args.build:
     os.chdir(OPATH)
     cmd = "bash build.sh"
     commands.append(cmd)
-    if args.r:
-        cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
-        commands.append(cmd)
+    #if args.r:
+    cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
+    commands.append(cmd)
  
 
 if args.significance:
@@ -149,7 +149,7 @@ lumi={
 }
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
-    cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov}".format(
+    cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov} {decorr}".format(
         ipath="/".join(OPATH.split("/")[:5]),
         year=args.year,lumi=lumi[args.year],
         rb="--rb" if args.r_b else "",
@@ -157,6 +157,7 @@ if args.plot:
         observed="--observed" if not args.asimov else "",
         xsec="--xsec" if args.xsec else "", 
         gq="--gq" if args.gq else "",
+        decorr="--decorr_scale_cat" if args.decorr_scale_cat else "",
     )
     commands.append(cmd) 
 if args.debug:

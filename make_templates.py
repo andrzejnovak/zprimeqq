@@ -3,7 +3,8 @@ import ROOT
 from array import array
 from common import * 
 import json
-
+from datetime import datetime
+import os
 parser = argparse.ArgumentParser(description='Makes templates based off bamboo output.')
 parser.add_argument("--root_path", action='store', type=str, default="",help="Path to ROOT holding templates for signal region.")
 parser.add_argument("--root_path_mu", action='store', type=str, default="",help="Path to ROOT holding single muon templates.")
@@ -80,14 +81,17 @@ def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=F
     return 
 
 if args.root_path:
-    output_file = ROOT.TFile(args.root_path+f"/TEMPLATES{'_blind' if args.is_blinded else ''}{'_fullrun2' if 'run2' in args.year else ''}{'_scale_full_lumi' if args.scale_full_lumi else ''}.root", "RECREATE")
+    OPATH = args.root_path+f"/TEMPLATES{'_blind' if args.is_blinded else ''}{'_fullrun2' if 'run2' in args.year else ''}{'_scale_full_lumi' if args.scale_full_lumi else ''}.root"
+    current_time = datetime.now().strftime("%m%d")
+    OPATH = f"{OPATH.replace('.root','')}_{current_time}.root"
+    output_file = ROOT.TFile(OPATH, "RECREATE")
     print("Making SR templates from path ",args.root_path)
     for isamp,isamplist in sample_maps.items():
         if "SingleMuon" in isamp: continue
         if "JetHT" in isamp and args.scale_full_lumi: continue
         if "JetHT" in isamp and args.year not in isamp: continue
         for tagger in ["pnmd2prong"]:
-            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L","pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
+            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L",]:#"pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 for iptbin in range(0,5):
                     print(f"Making hists for sample {isamp}, tagger {tagger}, region {region}, iptbin {iptbin}")
                     make_templates(args.root_path,region,isamp,iptbin,tagger,syst=None,muon=False,nowarn=False,year=args.year)
@@ -116,7 +120,7 @@ if args.root_path_mu:
     for isamp,isamplist in sample_maps_mu.items():
         if "SingleMuon" in isamp and args.year not in isamp: continue
         for tagger in ["pnmd2prong"]:
-            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L","pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
+            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L",]#"pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 print(isamp,isamplist,0,tagger,)
                 make_templates(args.root_path_mu,region,isamp,5,tagger,syst=None,muon=True,nowarn=False,year=args.year)
                 if "SingleMuon" in isamp: continue

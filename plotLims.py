@@ -13,7 +13,7 @@ import mplhep as hep
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.ticker as mticker
 from matplotlib.ticker import LogLocator, FuncFormatter
-
+import numpy as np
 
 #hep.style.use("CMS") # string aliases work too
 plt.style.use(hep.style.CMS)
@@ -29,7 +29,7 @@ parser.add_argument('--rb', dest='rb', action='store_true',help='b-limit')
 
 args = parser.parse_args()
 
-masses = [55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,165,170,175,180,185,190,195,200,205,210,215,220,225,230,235,240,245,250]
+masses = np.arange(50,305,5)#[50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,165,170,175,180,185,190,195,200,205,210,215,220,225,230,235,240,245,250,]
 
 def format_func(value, tick_number):
     # format the tick as plain, not scientific

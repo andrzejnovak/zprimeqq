@@ -132,6 +132,9 @@ parser.add_argument(
 parser.add_argument(
     "--decorr_scale_cat", action="store_true", help="Decorrelate scale highbvl and lowbvl."
 )
+parser.add_argument(
+    "--decorr_scale_cat_pt", action="store_true", help="Decorrelate scale highbvl and lowbvl per pt bin."
+)
 
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
     # pseudo.add_argument("--data", action="store_false", dest="pseudo")
@@ -181,21 +184,23 @@ SF = {
 
     "2016APV": {
         "BB_SF": 1,
-        "BB_SF_ERR": 0.1,
+        "BB_SF_ERR": 0.3,
         "V_SF": 0.799,
         "V_SF_ERR": 0.060,
         "SHIFT_SF": -0.350,
-        "SHIFT_SF_ERR": 0.475,
+        #"SHIFT_SF_ERR": 0.475,
+        "SHIFT_SF_ERR": 1.475,
         "SMEAR_SF": 1.099,
         "SMEAR_SF_ERR":0.057,
     },
     "2016": {
         "BB_SF": 1,
-        "BB_SF_ERR": 0.1,
+        "BB_SF_ERR": 0.3,
         "V_SF": 0.735,
         "V_SF_ERR": 0.061,
         "SHIFT_SF": -0.560,
-        "SHIFT_SF_ERR": 0.384,
+        #"SHIFT_SF_ERR": 0.384,
+        "SHIFT_SF_ERR": 1.384,
         "SMEAR_SF": 1.117,
         "SMEAR_SF_ERR":0.046,
     },
@@ -208,21 +213,38 @@ SF = {
         #"SHIFT_SF_ERR": 0.395,
         #"SMEAR_SF": 1.011,
         #"SMEAR_SF_ERR":0.024,
-        "V_SF": 0.802,
-        "V_SF_ERR": 0.043,
-        "SHIFT_SF": 0.620,
-        "SHIFT_SF_ERR": 0.272,
-        #"SHIFT_SF_ERR": 1.0,
-        "SMEAR_SF": 1.22,
-        "SMEAR_SF_ERR":0.112,
+        #"V_SF": 0.802,
+        #"V_SF_ERR": 0.043,
+        #"SHIFT_SF": 0.620,
+        #"SHIFT_SF_ERR": 0.272,
+        #"SHIFT_SF_ERR": 1.272,
+        #"SMEAR_SF": 1.22,
+        #"SMEAR_SF_ERR":0.112,
+        ####7May
+        #"V_SF" : 0.784,
+        #"V_SF_ERR" : 0.04,
+        #"SHIFT_SF": 0.681,
+        #"SHIFT_SF_ERR": 1.42,
+        #"SMEAR_SF": 1.126,
+        #"SMEAR_SF_ERR": 0.11,
+        ####10May
+        "V_SF" : 0.922,
+        "V_SF_ERR" : 0.091,
+        'SHIFT_SF': 0.286,
+        'SHIFT_SF_ERR': 0.491,
+        'SMEAR_SF': 0.640,
+        'SMEAR_SF_ERR': 0.614,
+
+
     },
     "2018": {
         "BB_SF": 1,
-        "BB_SF_ERR": 0.1,
+        "BB_SF_ERR": 0.3,
         "V_SF": 0.770,
         "V_SF_ERR": 0.034,
         "SHIFT_SF": -0.504,
-        "SHIFT_SF_ERR": 0.117,
+        #"SHIFT_SF_ERR": 0.117,
+        "SHIFT_SF_ERR": 1.117,
         "SMEAR_SF": 1.034,
         "SMEAR_SF_ERR":0.026,
     },
@@ -275,7 +297,7 @@ def flipSF(SF, SF_unc, yield_pass, yield_fail):
     sf = 1 - (yield_pass * (SF - 1) / yield_fail)
     sfup = 1. - (SF_unc * yield_pass/yield_fail)/sf
     sfdown = 1/sfup
-    print("sf,sfup,sfdown,yield_pass,SF,yield_fail",sf,sfup,sfdown,yield_pass,SF,yield_fail)
+    logging.debug(f"sf={sf},sfup={sfup},sfdown={sfdown},yield_pass={yield_pass},yield_fail={yield_fail},SF={SF}")
     return sf, sfup, sfdown
 
 with open("xsec.json") as f:
@@ -344,6 +366,16 @@ short_to_long = {
     "m240": "zpqq240",
     "m245": "zpqq245",
     "m250": "zpqq250",
+    "m255": "zpqq255",
+    "m260": "zpqq260",
+    "m265": "zpqq265",
+    "m270": "zpqq270",
+    "m275": "zpqq275",
+    "m280": "zpqq280",
+    "m285": "zpqq285",
+    "m290": "zpqq290",
+    "m295": "zpqq295",
+    "m300": "zpqq300",
     "b50": "zpbb50",
     "b55": "zpbb55",
     "b60": "zpbb60",
@@ -386,6 +418,16 @@ short_to_long = {
     "b240": "zpbb240",
     "b245": "zpbb245",
     "b250": "zpbb250",
+    "b255": "zpbb255",
+    "b260": "zpbb260",
+    "b265": "zpbb265",
+    "b270": "zpbb270",
+    "b275": "zpbb275",
+    "b280": "zpbb280",
+    "b285": "zpbb285",
+    "b290": "zpbb290",
+    "b295": "zpbb295",
+    "b300": "zpbb300",
 }
 
 sys_types = {
@@ -789,7 +831,18 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         sys_shape_dict[f"CMS_scale_{args.year}_lowbvl"] = rl.NuisanceParameter(
                 f"CMS_scale_{args.year}_lowbvl", 'shape'
         )
+        sys_shape_dict[f"CMS_scale_{args.year}_fail"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_fail", 'shape'
+        )
 
+    elif args.decorr_scale_cat_pt:
+        for iptbin in range(0,5):
+            sys_shape_dict[f"CMS_scale_{args.year}_highbvl_ptbin{iptbin}"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_highbvl_ptbin{iptbin}", 'shape'
+            )
+            sys_shape_dict[f"CMS_scale_{args.year}_lowbvl_ptbin{iptbin}"] = rl.NuisanceParameter(
+                f"CMS_scale_{args.year}_lowbvl_ptbin{iptbin}", 'shape'
+            )
     elif args.decorr_scale_pt:
         for iptbin in range(0,5):
             sys_shape_dict[f"CMS_scale_{args.year}_ptbin{iptbin}"] = rl.NuisanceParameter(
@@ -1208,7 +1261,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
                     mtempl = AffineMorphTemplate(templ)
                     _extra_scaling = 4.
-                    if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] and "pass" in region:
+                    if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] : #and "pass" in region:
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
                         realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
@@ -1223,6 +1276,16 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             elif "pass_T_bvl_fail_L" in region:
                                 log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_lowbvl on sample {sName}.") 
                                 sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_lowbvl"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                            elif "fail_T" in region:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_fail on sample {sName}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_fail"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                        elif args.decorr_scale_cat_pt:
+                            if "pass_T_bvl_pass_L" in region:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_highbvl on sample {sName} in ptbin {ptbin}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_highbvl_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                            elif "pass_T_bvl_fail_L" in region:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_lowbvl on sample {sName} in ptbin {ptbin}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_lowbvl_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         elif args.decorr_scale_pt: 
                             log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_ptbin{ptbin} on sample {sName}.") 
                             sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
@@ -1313,7 +1376,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     if args.do_systematics and not args.ftest:
         # Do 2-region SFs
         for ptbin in range(npt):
-            log.debug(f"Making two-pronged SFs for {ptbin}. Channels are {model.channels}.")
+            log.debug(f"Making BB SFs for {ptbin}. Channels are {model.channels}.")
             ch_pass = model[f"ptbin{ptbin}passTbvlpassL"]
             ch_fail = model[f"ptbin{ptbin}passTbvlfailL"]
             bb_samples = ["zbb", "hbb",]
@@ -1343,17 +1406,21 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     if yield_fail>0.:
                         sf_flipped, sfup, sfdn = flipSF(sf, unc, yield_pass, yield_fail)
                         sample_fail.scale(sf_flipped)                
-                        sample_fail.setParamEffect(sys_bbeff, 0.9,1.1)#sfup, sfdn)
+                        sample_fail.setParamEffect(sys_bbeff, sfup, sfdn)
                         logging.debug(f"  Nuisance: '{sys_bbeff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf_flipped}, sfunc_nominal: {unc}, card_unc: {sfup}/{sfdn:.3f}")
     if args.do_systematics and not args.ftest:        
         # Do 3-region SFs
         for ptbin in range(npt):
+            log.debug(f"Making two-pronged SFs for ptbin{ptbin}. Channels are {model.channels}.")
             ch_fail = model[f"ptbin{ptbin}failT"]
             ch_pass_pass = model[f"ptbin{ptbin}passTbvlpassL"]
             ch_pass_fail = model[f"ptbin{ptbin}passTbvlfailL"]
             qq_samples = ["wqq", "zqq", "zbb", "hbb", siggy]
             if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
+                log.debug(f"Working on {sName}")
+                log.debug(f"ch_pass_pass samples are {ch_pass_pass.samples}")
+                log.debug(f"ch_pass_fail samples are {ch_pass_fail.samples}")
                 sample_fail = ch_fail[f"{sName}"]
                 sample_pass_pass = ch_pass_pass[f"{sName}"]
                 sample_pass_fail = ch_pass_fail[f"{sName}"]
@@ -1631,7 +1698,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     #),
             }
     
-            include_samples = ["tt", "wlnu", "dy", "st",] 
+            include_samples = ["tt", "wlnu", "dy", "st","qcd",] 
             for sName in include_samples:
                 templ = templates[sName]
                 stype = rl.Sample.BACKGROUND
@@ -1669,6 +1736,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         if "year" in name_up:
                             name_up = name_up.replace("year",args.year)
                             name_down = name_down.replace("year",args.year)
+                        if "qcd" in sName: sName = "QCD"
                         if sys_shape_dict[sys_name].combinePrior == "lnN":
                             _sys_ef = shape_to_num(
                                 region,
@@ -1808,3 +1876,4 @@ if __name__ == "__main__":
 
     elapsed = time.time() - start_time
     pprint(f"Walltime: {time.strftime('%H:%M:%S', time.gmtime(elapsed))}")
+
