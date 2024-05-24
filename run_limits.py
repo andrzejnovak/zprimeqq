@@ -57,7 +57,11 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
 print(args)
-OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
+if args.year == "2017":
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
+elif args.year == "2018":
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
+#OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
 print(OPATH)
 templates = {
     "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES.root",
@@ -77,14 +81,18 @@ templates_mu = {
 tf_orders = {
     "2016APV" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
     "2016" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
-    "2017" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,4 ",
-    "2018" : " --ipt 0,0 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
+    "2017" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,4 ",
+    "2018" : " --ipt 0,1 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
 }
 
-taskname="limit_"+str(args.sigmass)+"_"+args.postfix
+if args.run:
+    taskname="limit_"+str(args.sigmass)+"_"+args.postfix
+if args.build:
+    taskname="limit_"+str(args.sigmass)+"_"+args.postfix
 if args.r_b:
     taskname += "_rb"
-condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 6000\' --task-name {taskname} """.format(taskname=taskname)
+if args.condor:
+    condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 6000\' --task-name {taskname} """.format(taskname=taskname)
 overall_cmd = ""
 if args.asimov:
     overall_cmd += " -t -1 "
@@ -111,6 +119,20 @@ if args.build:
     #if args.r:
     cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
     commands.append(cmd)
+    if args.condor:
+        cmd += condor_str
+        cmd += """ " > {opath}/{taskname}.sh """.format(opath=OPATH,taskname=taskname)
+        commands.append(cmd)
+        cmd = "bash {opath}/{taskname}.sh".format(opath=OPATH,taskname=taskname)
+        commands.append(cmd)
+        cmd = "mv condor_{taskname}.* {opath}".format(taskname=taskname,opath=OPATH)
+        commands.append(cmd)
+        cmd = "sed -i 's|executable = condor_{taskname}.sh|executable = {opath}/condor_{taskname}.sh|g' {opath}/condor_{taskname}.sub".format(taskname=taskname,opath=OPATH)
+        commands.append(cmd)
+        cmd = "sed -i 's|cd {pwd}|cd {pwd}/{opath}/|g' {opath}/condor_{taskname}.sh".format(taskname=taskname,pwd=os.environ["PWD"],opath=OPATH)
+        commands.append(cmd)
+        cmd = "condor_submit -spool {opath}/condor_{taskname}.sub".format(opath=OPATH,taskname=taskname)
+        commands.append(cmd)
  
 
 if args.significance:

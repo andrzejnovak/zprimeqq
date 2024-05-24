@@ -136,10 +136,10 @@ def get_graphs():
             med.append(math.sqrt(limits[2] * fac/theory))
             hi1.append(math.sqrt(limits[3] * fac/theory))
             hi2.append(math.sqrt(limits[4] * fac/theory))
-            filled_masses.append(mass)
             if args.observed:
                 assert(len(limits)>5)
                 obs.append(math.sqrt(limits[5] * fac/theory))
+            filled_masses.append(mass)
         elif args.xsec:
             lo2.append(limits[0] * fac * theoryRatio * kFactor)
             lo1.append(limits[1] * fac * theoryRatio * kFactor)
@@ -167,7 +167,7 @@ def get_graphs():
     ax.fill_between(filled_masses,lo1,hi1,color='limegreen',label="Expected $\pm 1 \sigma$")
     ax.plot(filled_masses,med,color='black',linestyle="--",linewidth=1.5,label="Expected")
     if args.observed:
-        ax.plot(masses,obs,color='black',linestyle="-",linewidth=1.5,label="Observed")
+        ax.plot(filled_masses,obs,color='black',linestyle="-",linewidth=1.5,label="Observed")
     
     if args.gq:
         if args.rb:

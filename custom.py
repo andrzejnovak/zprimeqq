@@ -36,7 +36,10 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         #elif args.lowbvl:
         #    overall_conf += " --freezeParameters r,'rgx{{tf{year}_dataResidual_0_*}}' --redefineSignalPOIs tf{year}_dataResidual_1_pt_par0_rho_par0".format(year=args.year)
     else:
-        overall_conf = f" --expectSignal=0" # --freezeParameters r --setParameters r=0 --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "# --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "  
+        overall_conf = " " #f" --freezeParameters r --setParameters r=0 " # --redefineSignalPOIs tf2017_MC_0templ_deco0 --freezeParameters r --setParameters r=0 --toysFr "
+        #overall_conf = f" --redefineSignalPOIs tf{args.year}_MC_0templ_deco0 --freezeParameters r --setParameters r=0 " # --redefineSignalPOIs tf2017_MC_0templ_deco0 --freezeParameters r --setParameters r=0 --toysFr "
+        #overall_conf = f" --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 --setParameters r=0 --freezeParameters r "
+        #overall_conf = f" --expectSignal=0 --freezeParameters CMS_PNet_bb_{args.year} --setParameters CMS_PNet_bb_{args.year}=1 " # --freezeParameters r --setParameters r=0 --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "# --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_0_pt_par0_rho_par0 "  
         #overall_conf = f" --setParameters r=0 --freezeParameters r --redefineSignalPOIs tf{args.year}_dataResidual_pt_par0_rho_par0 --toysFrequentist "  
         #overall_conf = " --setParameters r=1 --toysFrequentist --freezeParameters r --setParameterRanges r=-10,10 "
         #overall_conf = " --setParameters r=1,z=1  --toysFrequentist --freezeParameters r,z --setParameterRanges r=-10,10:z=0.95,1.05 "
@@ -67,7 +70,8 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .BaseFit  --saveWorkspace --saveFitResult "
-            " --setParameterRanges r=-5,5 " 
+            #" --setParameterRanges r=-5,5 "
+            " --freezeParameters r --setParameters r=0 " 
             " -d {}".format(ws_base) + overall_conf)
 
         if args.condor:
@@ -77,7 +81,8 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
         command = (
             "combineTool.py -M MultiDimFit --cminDefaultMinimizerStrategy 0 --robustFit=1   "
             " -n .AltFit  --saveWorkspace --saveFitResult"
-            " --setParameterRanges r=-5,5 " 
+            #" --setParameterRanges r=-5,5 " 
+            " --freezeParameters r --setParameters r=0 " 
             " -d {}".format(ws_alt) + overall_conf)
         if args.condor:
             command += CONDOR_str.format("altmultifit")
@@ -107,6 +112,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
             #" --snapshotName MultiDimFit --bypassFrequentistFit "
             " -n .Base "
             " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root")
+            + " --fixedSignalStrength=0 "
             +  overall_conf
         )
         if args.condor:
@@ -116,6 +122,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
             #" --snapshotName MultiDimFit --bypassFrequentistFit "
             " -n .Alt "
             " -d {ws}".format(ws="higgsCombine.AltFit.MultiDimFit.mH120.root")
+            + " --fixedSignalStrength=0 "
             +  overall_conf
         )
         if args.condor:
@@ -133,6 +140,8 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
                 " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root", t=args.toys, s=seed) 
                 +  overall_conf
         )
+        #if not mc:
+        #    command += f" --redefineSignalPOIs tf{args.year}_MC_0templ_deco0 --freezeParameters r --setParameters r=0 "
         if args.condor:
             command += CONDOR_str.format("toysgen_{}_{}".format(seed, pseudorand_str(4)))
         exec_bash(command, debug)
