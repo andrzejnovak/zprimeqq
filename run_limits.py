@@ -17,7 +17,7 @@ plt.ioff()
 
 parser = argparse.ArgumentParser(description='Rhalphalib setup.')
 parser.add_argument("--postfix", action='store', type=str, required=True, help="special tag for tests.")
-parser.add_argument('--year', dest='year', action='store',type=str,help='year')
+parser.add_argument('--year', dest='year', action='store',choices=["2016","2016APV","2017","2018","combination"],type=str,help='year')
 parser.add_argument('--make', dest='make', action='store_true',help='Make space')
 parser.add_argument('--build', dest='build', action='store_true',help='Build space')
 parser.add_argument('--run', dest='run', action='store_true',help='Run toys')
@@ -49,7 +49,7 @@ args = parser.parse_args()
 def gauss(x, a, b, c):
     return a * py.exp(-(x - b)**2.0 / (2 * c**2))
 
-
+cmssw_str='''#!/bin/sh\nulimit -s unlimited\nset -e\ncd /eos/home-j/jekrupa/fitting/CMSSW_11_3_4/src\nexport SCRAM_ARCH=slc7_amd64_gcc900\nsource /cvmfs/cms.cern.ch/cmsset_default.sh\neval `scramv1 runtime -sh`'''
 
 
 ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -57,11 +57,19 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
 print(args)
-if args.year == "2017":
+if args.year == "2016APV":
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
+if args.year == "2016":
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,1_irho2,0/m{args.sigmass}/m{args.sigmass}_model/"
+elif args.year == "2017":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2018":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
+elif args.year == "combination":
+    OPATH = f"results/limits/combination/{args.postfix}/m{args.sigmass}/m{args.sigmass}_model/"
+    
 #OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
+OPATH=os.path.abspath(OPATH)
 print(OPATH)
 templates = {
     "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES.root",
@@ -79,16 +87,16 @@ templates_mu = {
 }
 
 tf_orders = {
-    "2016APV" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
-    "2016" : " --ipt 0,0 --irho 0,0 --iptMC 0,2 --irhoMC 1,3 ",
+    "2016APV" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,3 ",
+    "2016" : " --ipt 1,2 --irho 0,2 --iptMC 0,2 --irhoMC 1,3 ",
     "2017" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,4 ",
-    "2018" : " --ipt 0,1 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
+    "2018" : " --ipt 1,0 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
 }
 
 if args.run:
     taskname="limit_"+str(args.sigmass)+"_"+args.postfix
 if args.build:
-    taskname="limit_"+str(args.sigmass)+"_"+args.postfix
+    taskname="build_"+str(args.sigmass)+"_"+args.postfix
 if args.r_b:
     taskname += "_rb"
 if args.condor:
@@ -107,34 +115,36 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''}"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} -vv"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
 base_dir=os.getcwd()
 if args.build:
-    os.chdir(OPATH)
-    cmd = "bash build.sh"
+    #os.chdir(OPATH)
+    cmd = """ echo '{cmssw_str}'  > {opath}/{taskname}.sh """.format(cmssw_str=cmssw_str,opath=OPATH,taskname=taskname)
     commands.append(cmd)
-    #if args.r:
-    cmd = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*{sigmass}:r[1,-5,5]' model_combined.txt -o inclusive_workspace.root".format(sigmass=args.sigmass)
+    cmd = """ echo "cd {opath}" >> {opath}/{taskname}.sh """.format(opath=OPATH,taskname=taskname)
+    commands.append(cmd)
+    if not args.year == "combination":
+        cmd = """ echo "bash {opath}/build.sh" >> {opath}/{taskname}.sh """.format(opath=OPATH,taskname=taskname)
+        commands.append(cmd)
+        cmd = """ echo "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO \'map=.*/*{sigmass}:r[1,-5,5]\' {opath}/model_combined.txt -o {opath}/inclusive_workspace.root " >> {opath}/{taskname}.sh """.format(sigmass=args.sigmass, opath=OPATH,taskname=taskname)
+        commands.append(cmd)
+    else:
+        cmd = "cat {opath}/build.sh >> {opath}/{taskname}.sh".format(opath=OPATH,taskname=taskname)
+        commands.append(cmd)
+    cmd = "cp condor_templ.sub {opath}/{taskname}.sub".format(opath=OPATH,taskname=taskname)
+    commands.append(cmd)
+    cmd = """sed -i 's|XXX|{opath}/{taskname}.sh|g' {opath}/{taskname}.sub""".format(opath=OPATH,taskname=taskname)
     commands.append(cmd)
     if args.condor:
-        cmd += condor_str
-        cmd += """ " > {opath}/{taskname}.sh """.format(opath=OPATH,taskname=taskname)
+        cmd = "condor_submit -spool {opath}/{taskname}.sub".format(opath=OPATH,taskname=taskname)
         commands.append(cmd)
-        cmd = "bash {opath}/{taskname}.sh".format(opath=OPATH,taskname=taskname)
-        commands.append(cmd)
-        cmd = "mv condor_{taskname}.* {opath}".format(taskname=taskname,opath=OPATH)
-        commands.append(cmd)
-        cmd = "sed -i 's|executable = condor_{taskname}.sh|executable = {opath}/condor_{taskname}.sh|g' {opath}/condor_{taskname}.sub".format(taskname=taskname,opath=OPATH)
-        commands.append(cmd)
-        cmd = "sed -i 's|cd {pwd}|cd {pwd}/{opath}/|g' {opath}/condor_{taskname}.sh".format(taskname=taskname,pwd=os.environ["PWD"],opath=OPATH)
-        commands.append(cmd)
-        cmd = "condor_submit -spool {opath}/condor_{taskname}.sub".format(opath=OPATH,taskname=taskname)
-        commands.append(cmd)
- 
-
+    else:
+        cmd = """bash {opath}/{taskname}.sh""".format(opath=OPATH,taskname=taskname)
+        commands.append(cmd) 
+    
 if args.significance:
     os.chdir(OPATH)
     cmd = "combine -M Significance -d model_combined.root "
@@ -168,6 +178,7 @@ lumi={
   "2016" : 16.81,
   "2017" : 41.5,
   "2018" : 59.72,
+  "combination" : "137.6",
 }
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]

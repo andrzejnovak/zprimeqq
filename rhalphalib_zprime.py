@@ -272,7 +272,7 @@ SF = {
         "BB_SF": 1.,
         "BB_SF_ERR": 0.3, 
         "W_SF": 1.,
-        "W_SF_ERR": 3.,
+        "W_SF_ERR": 1.,
         ####WTAG CR WITH INCLUSIVE PT
         #"V_SF": 0.770,
         #"V_SF_ERR": 0.034,
@@ -285,7 +285,7 @@ SF = {
         'V_SF': 0.827,
         'V_SF_ERR': 0.072,
         'SHIFT_SF': 0.184,
-        'SHIFT_SF_ERR': 1.441,
+        'SHIFT_SF_ERR': 0.441 + 1.,
         'SMEAR_SF': 1.17725,
         'SMEAR_SF_ERR': 0.0435,
     },
@@ -809,7 +809,6 @@ def shape_to_num(
 
 
 def test_rhalphabet(tmpdir, sig, throwPoisson=False):
-    jec = rl.NuisanceParameter("CMS_jec", "lnN")
     sys_shape_dict = {}
     sys_shape_dict["JES"] = rl.NuisanceParameter(
         "CMS_scale_j_{}".format(args.year), sys_types["JES"]
@@ -872,7 +871,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     sys_bbeff = rl.NuisanceParameter("CMS_PNet_bb_{}".format(args.year), "lnN")
     sys_Weff = rl.NuisanceParameter("CMS_PNet_W_{}".format(args.year), "lnN")
 
-    sys_lumi = rl.NuisanceParameter("CMS_lumi", "lnN")
+    sys_lumi = rl.NuisanceParameter("CMS_lumi_{}".format(args.year), "lnN")
     sys_lumi_correlated = rl.NuisanceParameter("CMS_lumi_13TeV_correlated", "lnN")
     sys_lumi_1718 = rl.NuisanceParameter("CMS_lumi_13TeV_1718", "lnN")
 
@@ -904,13 +903,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
     print("Systs being considered =", sys_shape_dict.keys())
-    tqqeffSF = rl.IndependentParameter("tqqeffSF", 1.0, 0, 10)
-    tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF", 1.0, 0, 10)
-    tqqnormSF = rl.IndependentParameter("tqqnormSF", 1.0, 0, 10)
-    tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl", 1.0, 0, 10)
-    tqqnormSF_highbvl = rl.IndependentParameter("tqqnormSF_highbvl", 1.0, 0, 10)
-    tqqeffSF_lowbvl = rl.IndependentParameter("tqqeffSF_lowbvl", 1.0, 0, 10)
-    tqqnormSF_lowbvl = rl.IndependentParameter("tqqnormSF_lowbvl", 1.0, 0, 10)
+    tqqeffSF = rl.IndependentParameter("tqqeffSF_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqnormSF = rl.IndependentParameter("tqqnormSF_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqnormSF_highbvl = rl.IndependentParameter("tqqnormSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqeffSF_lowbvl = rl.IndependentParameter("tqqeffSF_lowbvl_{year}".format(year=args.year), 1.0, 0, 10)
+    tqqnormSF_lowbvl = rl.IndependentParameter("tqqnormSF_lowbvl_{year}".format(year=args.year), 1.0, 0, 10)
 
     # with open(args.pickle, "rb") as f:
     #    df = pickle.load(f)
@@ -1025,7 +1024,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 failObs = failCh.getObservation()[0]
                 qcdparams = np.array(
                     [
-                        rl.IndependentParameter(f"qcdparam{i}_ptbin{ptbin}_msdbin{mbin}", 0)
+                        rl.IndependentParameter(f"qcdparam{i}_ptbin{ptbin}_msdbin{mbin}".format(i=i,ptbin=ptbin,mbin=mbin,), 0)
                         for mbin in range(msd.nbins)
                     ]
                 )
@@ -1281,7 +1280,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     sample.setParamEffect(sys_muveto, 1.005)
                     sample.setParamEffect(sys_tauveto, 1.005)
 
-                    sample.autoMCStats(lnN=True)
+                    sample.autoMCStats(lnN=True,sample_name=f"{sName}_{args.year}")
 
                     sys_names = [
                         "JES",
@@ -1364,12 +1363,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         else:
                             sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling) 
-                        _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
-                        _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling)
-                        #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
-                        #    log.info("Skipping sample {}, smear systematic would be empty".format(sName))
-                        #    continue
-                        sample.setParamEffect(sys_smear, _up, _down, scale=1/_extra_scaling) 
+                        _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] )#* _extra_scaling) When the smear unc is large, this extra scaling causes negative values
+                        _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] )#* _extra_scaling) When the smear unc is large, this extra scaling causes negative values
+                        if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
+                            log.info("Filling sample {} in ptbin {} with zero, smear systematic would be empty. nominal template={}, up={}, down={}".format(sName,ptbin,np.round(templ[0],5),np.round(_up[0],5), np.round(_down[0],5)))
+                            sample.mask = np.ones_like(_down[0])                
+                            log.info("After masking: nominal template={}".format(sample.show(),5))
+                            #continue
+                        sample.setParamEffect(sys_smear, _up, _down, scale=1 )#/_extra_scaling) 
 
                 else:
                     sample.setParamEffect(sys_lumi, 1.1)
@@ -1448,8 +1449,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     # ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
     if args.do_systematics and not args.ftest:
         # Do 2-region SFs
-        indep = rl.IndependentParameter('failscale', 1., 0, 100)
-        indepW = rl.IndependentParameter('failscaleW', 1., 0, 1000)
+        indep = rl.IndependentParameter("failscale_{year}".format(year=args.year), 1., 0, 100)
+        indepW = rl.IndependentParameter("failscaleW_{year}".format(year=args.year), 1., 0, 100)
 
         for ptbin in range(npt):
             log.debug(f"Making BB and QQ SFs for {ptbin}. Channels are {model.channels}.")
@@ -1461,6 +1462,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             for sName in qq_samples:  
                 sample_pass = ch_pass[sName]
                 sample_fail = ch_fail[sName]
+                ### PHIL WAY, I DONT KNOW IF THIS WORKS
                 for sf, unc in zip([SF[args.year]['W_SF']], [SF[args.year]['W_SF_ERR']]):                      
                     template_pass_pass = get_templ(
                             "pass_T_bvl_pass_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
@@ -1483,7 +1485,32 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         rmod = (yield_pass * sf) / (yield_fail * sff)
                         sample_fail.setParamEffect(indepW, (1 - sys_Weff * unc * rmod))
                         logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
+            '''
+                ### ANDRZEJ WEY, I THINK THIS WORKS
+                for sf, unc in zip([SF[args.year]['W_SF']], [SF[args.year]['W_SF_ERR']]):                      
+                    template_pass_pass = get_templ(
+                            "pass_T_bvl_pass_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                    )
+                    template_pass_fail = get_templ(
+                            "pass_T_bvl_fail_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
+                    )
+                    yield_pass = template_pass_pass[0].sum()
+                    yield_fail = template_pass_fail[0].sum()
+                    sfunc = 1. + unc / sf
+                    if yield_fail > 0.:
+                        sample_fail.scale(sf)                
+                        sample_fail.setParamEffect(sys_Weff, sfunc, 1/sfunc)
+                        logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
+                    if yield_pass > 0.:
+                        # Scale fail
+                        sff = 1 + (1 - sf) * yield_fail / yield_pass
+                        sample_pass.scale(sff)   
+                        ratio =  yield_fail / yield_pass
+                        rmod = (yield_fail * sf) / (yield_pass * sff)
+                        sample_pass.setParamEffect(indepW, (1 - sys_Weff * unc * rmod))
+                        logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
 
+            '''
             ### BB MISTAGGING ###
             bb_samples = ["zbb", "hbb",]
             if not args.ftest: bb_samples += [bsiggy]
@@ -1611,7 +1638,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             # Fail region
             qcdparams = np.array(
                 [
-                    rl.IndependentParameter("qcdparam_ptbin%d_msdbin%d" % (ptbin, i), 0)
+                    rl.IndependentParameter("qcdparam_{year}_ptbin{ptbin}_msdbin{i}".format(year=args.year,ptbin=ptbin, i=i,), 0)
                     for i in range(msd.nbins)
                 ]
             )
@@ -1664,7 +1691,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             qcdparams = np.array(
                 [
-                    rl.IndependentParameter("qcdparam_ptbin%d_msdbin%d" % (ptbin, i), 0)
+                    rl.IndependentParameter("qcdparam_ptbin{ptbin}_msdbin{i}_{year}".format(ptbin, i, year=args.year), 0)
                     for i in range(msd.nbins)
                 ]
             )

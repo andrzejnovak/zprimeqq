@@ -226,7 +226,7 @@ if __name__ == "__main__":
                         default=None,
                         help="Polynomial degrees in the shape 'pt,rho' e.g. '2,2'")
     parser.add_argument('-o', '--outdir', type=str, default=None, help="Plots out")
-    parser.add_argument('--year', type=str, choices=["2016APV","2016" "2017", "2018"], required=True, help="Year to display on plots.")
+    parser.add_argument('--year', type=str, choices=["2016APV","2016", "2017", "2018"], required=True, help="Year to display on plots.")
     parser.add_argument('--mc', action='store_true', dest='mc')
     parser.add_argument('--highbvl', action='store_true', dest='highbvl')
     parser.add_argument('--lowbvl', action='store_true', dest='lowbvl')
