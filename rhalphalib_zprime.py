@@ -1278,7 +1278,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         )
                     sample.setParamEffect(sys_eleveto, 1.005)
                     sample.setParamEffect(sys_muveto, 1.005)
-                    sample.setParamEffect(sys_tauveto, 1.005)
+                    sample.setParamEffect(sys_tauveto, 1.05)
 
                     sample.autoMCStats(lnN=True,sample_name=f"{sName}_{args.year}")
 
@@ -1334,12 +1334,14 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     mtempl = AffineMorphTemplate(templ)
                     _extra_scaling = 4.
                     if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] : #and "pass" in region:
+                        _extra_scaling = 2. #4./SF[args.year]['SHIFT_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
                         realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
                         _down = mtempl.get(shift=-realshift)
-                        #if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
-                        #    log.info("Skipping sample {}, scale systematic would be empty".format(sName))
+                        if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
+                            log.info("Filling sample {} in ptbin {} in channel {} with zero, scale systematic would be empty. nominal template={}, up={}, down={}".format(sName,ptbin,ch.name,np.round(templ[0],5),np.round(_up[0],5), np.round(_down[0],5)))
+                            sample.mask = np.ones_like(_down[0])                
                         #    continue
                         if args.decorr_scale_cat:
                             if "pass_T_bvl_pass_L" in region:
@@ -1362,15 +1364,16 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_ptbin{ptbin} on sample {sName}.") 
                             sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         else:
-                            sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling) 
-                        _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] )#* _extra_scaling) When the smear unc is large, this extra scaling causes negative values
-                        _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] )#* _extra_scaling) When the smear unc is large, this extra scaling causes negative values
+                            sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                        _extra_scaling = 0.4/SF[args.year]['SMEAR_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.
+                        _up = mtempl.get(smear=1 + SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling) ###When the smear unc is large,  extra scaling that is too large can cause negative values
+                        _down = mtempl.get(smear=1 - SF[args.year]['SMEAR_SF_ERR'] * _extra_scaling) ###When the smear unc is large, extra scaling that is too large can cause negative values
                         if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
-                            log.info("Filling sample {} in ptbin {} with zero, smear systematic would be empty. nominal template={}, up={}, down={}".format(sName,ptbin,np.round(templ[0],5),np.round(_up[0],5), np.round(_down[0],5)))
+                            log.info("Filling sample {} in ptbin {} in channel {} with zero, smear systematic would be empty. nominal template={}, up={}, down={}".format(sName,ptbin,ch.name,np.round(templ[0],5),np.round(_up[0],5), np.round(_down[0],5)))
                             sample.mask = np.ones_like(_down[0])                
                             log.info("After masking: nominal template={}".format(sample.show(),5))
                             #continue
-                        sample.setParamEffect(sys_smear, _up, _down, scale=1 )#/_extra_scaling) 
+                        sample.setParamEffect(sys_smear, _up, _down, scale=1 /_extra_scaling) 
 
                 else:
                     sample.setParamEffect(sys_lumi, 1.1)
@@ -1851,7 +1854,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     if '2016' not in args.year:
                         sample.setParamEffect(sys_lumi_1718, lumi_1718_dict_unc[args.year])
                     sample.setParamEffect(sys_eleveto, 1.005)
-                    sample.setParamEffect(sys_tauveto, 1.005)
+                    sample.setParamEffect(sys_tauveto, 1.05)
 
                     sys_names = [
                         'JES', 'JER', 'muotrig', 'muoid','muoiso', 'pileup_weight',

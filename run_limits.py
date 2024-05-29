@@ -56,11 +56,10 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
-print(args)
 if args.year == "2016APV":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 if args.year == "2016":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,1_irho2,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,2_irho0,2/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2017":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2018":
@@ -68,15 +67,13 @@ elif args.year == "2018":
 elif args.year == "combination":
     OPATH = f"results/limits/combination/{args.postfix}/m{args.sigmass}/m{args.sigmass}_model/"
     
-#OPATH=f"results/limits/{args.postfix}/pnmd2prong/ipt0,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
 OPATH=os.path.abspath(OPATH)
-print(OPATH)
+
 templates = {
     "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES.root",
     "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES.root",
     "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES.root",
     "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
-    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
 }
 
 templates_mu = {
@@ -100,7 +97,7 @@ if args.build:
 if args.r_b:
     taskname += "_rb"
 if args.condor:
-    condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 6000\' --task-name {taskname} """.format(taskname=taskname)
+    condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 120000\' --task-name {taskname} """.format(taskname=taskname)
 overall_cmd = ""
 if args.asimov:
     overall_cmd += " -t -1 "
@@ -115,7 +112,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} -vv"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} --collapse " #-vv"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
@@ -167,7 +164,10 @@ if args.run:
         commands.append(cmd)
         cmd = "sed -i 's|executable = condor_{taskname}.sh|executable = {opath}/condor_{taskname}.sh|g' {opath}/condor_{taskname}.sub".format(taskname=taskname,opath=OPATH)
         commands.append(cmd)
-        cmd = "sed -i 's|cd {pwd}|cd {pwd}/{opath}/|g' {opath}/condor_{taskname}.sh".format(taskname=taskname,pwd=os.environ["PWD"],opath=OPATH)
+        #if args.year=="combination":
+        cmd = "sed -i 's|cd {pwd}|cd /{opath}/|g' {opath}/condor_{taskname}.sh".format(taskname=taskname,pwd=os.environ["PWD"],opath=OPATH)
+        #else:
+        #    cmd = "sed -i 's|cd {pwd}|cd {pwd}/{opath}/|g' {opath}/condor_{taskname}.sh".format(taskname=taskname,pwd=os.environ["PWD"],opath=OPATH)
         commands.append(cmd)
         cmd = "condor_submit -spool {opath}/condor_{taskname}.sub".format(opath=OPATH,taskname=taskname)
         commands.append(cmd)
@@ -183,7 +183,7 @@ lumi={
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
     cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov} {decorr}".format(
-        ipath="/".join(OPATH.split("/")[:5]),
+        ipath="/".join(OPATH.split("/")[:-2]),
         year=args.year,lumi=lumi[args.year],
         rb="--rb" if args.r_b else "",
         asimov="--asimov" if args.asimov else "", 
