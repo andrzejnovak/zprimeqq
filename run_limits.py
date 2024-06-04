@@ -59,11 +59,11 @@ commands = []
 if args.year == "2016APV":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 if args.year == "2016":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,2_irho0,2/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,2_irho2,2/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2017":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2018":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho0,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "combination":
     OPATH = f"results/limits/combination/{args.postfix}/m{args.sigmass}/m{args.sigmass}_model/"
     
@@ -77,17 +77,17 @@ templates = {
 }
 
 templates_mu = {
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES.root",
-    "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES.root",
-    "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES.root",
-    "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
+    "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
+    "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
+    "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
 }
 
 tf_orders = {
     "2016APV" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,3 ",
-    "2016" : " --ipt 1,2 --irho 0,2 --iptMC 0,2 --irhoMC 1,3 ",
+    "2016" : " --ipt 2,2 --irho 2,2 --iptMC 0,2 --irhoMC 1,3 ",
     "2017" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,4 ",
-    "2018" : " --ipt 1,0 --irho 0,0 --iptMC 2,2 --irhoMC 3,4 ",
+    "2018" : " --ipt 1,0 --irho 1,0 --iptMC 2,2 --irhoMC 3,4 ",
 }
 
 if args.run:
@@ -180,6 +180,11 @@ lumi={
   "2018" : 59.72,
   "combination" : "137.6",
 }
+
+year = args.year
+
+if year == "combination":
+    year = "Run 2"
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
     cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov} {decorr}".format(

@@ -11,6 +11,7 @@ parser.add_argument("--root_path_mu", action='store', type=str, default="",help=
 parser.add_argument("--is_blinded", action='store_true', help="Blinded dataset.")
 parser.add_argument("--scale_full_lumi", action='store_true', help="Scale 10pct dataset to full lumi.")
 parser.add_argument("--year", action='store', choices=["2016preVFP", "2016postVFP", "2017", "2018","fullrun2"], type=str, help="Year to run on")
+parser.add_argument("--postfix",action='store', type=str, required=True)
 args = parser.parse_args()
 
 
@@ -81,7 +82,7 @@ def make_templates(path,region,sample,ptbin,tagger,syst=None,muon=False,nowarn=F
     return 
 
 if args.root_path:
-    OPATH = args.root_path+f"/TEMPLATES{'_blind' if args.is_blinded else ''}{'_fullrun2' if 'run2' in args.year else ''}{'_scale_full_lumi' if args.scale_full_lumi else ''}.root"
+    OPATH = args.root_path+f"/TEMPLATES{'_blind' if args.is_blinded else ''}{'_fullrun2' if 'run2' in args.year else ''}{'_scale_full_lumi' if args.scale_full_lumi else ''}_{args.postfix}.root"
     current_time = datetime.now().strftime("%m%d")
     OPATH = f"{OPATH.replace('.root','')}_{current_time}.root"
     output_file = ROOT.TFile(OPATH, "RECREATE")
@@ -115,12 +116,12 @@ if args.root_path:
     
 
 if args.root_path_mu:
-    output_file = ROOT.TFile(args.root_path_mu+f"/TEMPLATES{'_blind' if args.is_blinded else ''}.root", "RECREATE")
+    output_file = ROOT.TFile(args.root_path_mu+f"/TEMPLATES{'_blind' if args.is_blinded else ''}_{args.postfix}.root", "RECREATE")
     print("Making CR templates from path ",args.root_path_mu)
     for isamp,isamplist in sample_maps_mu.items():
         if "SingleMuon" in isamp and args.year not in isamp: continue
         for tagger in ["pnmd2prong"]:
-            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L",]#"pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
+            for region in ["fail_T","pass_T_bvl_fail_L","pass_T_bvl_pass_L",]:#"pass_T_bvl_fail_T","pass_T_bvl_pass_T","pass_T_bvl_fail_VT","pass_T_bvl_pass_VT"]:
                 print(isamp,isamplist,0,tagger,)
                 make_templates(args.root_path_mu,region,isamp,5,tagger,syst=None,muon=True,nowarn=False,year=args.year)
                 if "SingleMuon" in isamp: continue

@@ -153,6 +153,7 @@ parser.add_argument(
 
 parser.add_argument("--is_blinded", action="store_true", help="Run on 10pct dataset.")
 parser.add_argument("--throwPoisson", action="store_true", help="Throw poisson.")
+parser.add_argument("--constrainedttbar", action="store_true", help="Treat top nuisances as constrained parameters (default is unconstrained).")
 parser.add_argument(
     "--four_pt_bins", action="store_true", help="Sum the last two pt bins."
 )
@@ -182,14 +183,76 @@ logging.basicConfig(
 )
 log = logging.getLogger("rich")
 
+topSF = {
+    "2016APV" : {
+        "highbvl" : {
+            "tqqeffSF_val" : 1.04,
+            "tqqeffSF_unc" : 0.10,
+            "tqqnormSF_val" : 1.02, #1.1062e+00,
+            "tqqnormSF_unc" : 0.086, #9.12e-02,
+         },
 
+        "lowbvl" : {
+            "tqqeffSF_val" : 0.898,
+            "tqqeffSF_unc" : 0.088,
+            "tqqnormSF_val" : 1.01,
+            "tqqnormSF_unc" : 0.084,
+         }
+
+    },
+    "2016" : {
+        "highbvl" : {
+            "tqqeffSF_val" : 0.93349,
+            "tqqeffSF_unc" : 0.112,
+            "tqqnormSF_val" : 1.1, #1.1062e+00,
+            "tqqnormSF_unc" : 0.091, #9.12e-02,
+         },
+
+        "lowbvl" : {
+            "tqqeffSF_val" : 0.54,
+            "tqqeffSF_unc" : 0.078,
+            "tqqnormSF_val" : 1.08,
+            "tqqnormSF_unc" : 0.089,
+         }
+    },
+    "2017" : {
+        "highbvl" : {
+            "tqqeffSF_val" : 0.956,
+            "tqqeffSF_unc" : 0.083,
+            "tqqnormSF_val" : 0.964, #1.1062e+00,
+            "tqqnormSF_unc" : 0.085, #9.12e-02,
+         },
+        "lowbvl" : {
+            "tqqeffSF_val" : 0.756,
+            "tqqeffSF_unc" : 0.057,
+            "tqqnormSF_val" : 0.93,
+            "tqqnormSF_unc" : 0.082,
+         }
+    },
+    "2018" : { 
+        "highbvl" : {
+            "tqqeffSF_val" : 1.16,
+            "tqqeffSF_unc" : 0.074,
+            "tqqnormSF_val" : 0.957,
+            "tqqnormSF_unc" : 0.074,
+         },
+        "lowbvl" : {
+            "tqqeffSF_val" : 0.779,
+            "tqqeffSF_unc" : 0.049,
+            "tqqnormSF_val" : 0.91,
+            "tqqnormSF_unc" : 0.07,
+         }
+    },
+    
+
+}
 SF = {
 
     "2016APV": {
         "BB_SF": 1,
         "BB_SF_ERR": 0.3,
         "W_SF": 1,
-        "W_SF_ERR": 1.,
+        "W_SF_ERR": 0.3,
         ### W CR >200 GeV
         #"V_SF": 0.799,
         #"V_SF_ERR": 0.060,
@@ -198,20 +261,26 @@ SF = {
         #"SHIFT_SF_ERR": 1.475,
         #"SMEAR_SF": 1.099,
         #"SMEAR_SF_ERR":0.057,
+        ###IDK what these are?
+        #'V_SF': 0.635,
+        #'V_SF_ERR': 0.116,
+        #'SHIFT_SF': -0.599,
+        #'SHIFT_SF_ERR': 0.664 +1.,
+        #'SMEAR_SF': 1.228,
+        #'SMEAR_SF_ERR': 0.37875
         ### W CR >400 GeV
-        'V_SF': 0.635,
-        'V_SF_ERR': 0.116,
-        'SHIFT_SF': -0.599,
-        'SHIFT_SF_ERR': 0.664 +1.,
-        'SMEAR_SF': 1.228,
-        'SMEAR_SF_ERR': 0.37875
-
+        'V_SF': 0.961,
+        'V_SF_ERR': 0.137,
+        'SHIFT_SF' : 1.206,
+        'SHIFT_SF_ERR' : 0.206 + 1.,
+        'SMEAR_SF' : 1.115,
+        'SMEAR_SF_ERR' : 0.122,
     },
     "2016": {
         "BB_SF": 1,
         "BB_SF_ERR": 0.3,
         "W_SF": 1,
-        "W_SF_ERR": 1.,
+        "W_SF_ERR": 0.3,
         ### W CR >200 GeV
         #"V_SF": 0.735,
         #"V_SF_ERR": 0.061,
@@ -221,18 +290,18 @@ SF = {
         #"SMEAR_SF": 1.117,
         #"SMEAR_SF_ERR":0.046,
         ### W CR >400 GeV
-        "V_SF": 0.627,
-        "V_SF_ERR": 0.114,
-        "SHIFT_SF": -0.336,
+        "V_SF": 0.635,
+        "V_SF_ERR": 0.116,
+        "SHIFT_SF": -0.559,
         "SHIFT_SF_ERR": 0.664 + 1,
-        "SMEAR_SF": 1.477,
-        "SMEAR_SF_ERR": 0.122,
+        "SMEAR_SF": 1.228,
+        "SMEAR_SF_ERR": 0.329,
     },
     "2017": {
         "BB_SF": 1,
         "BB_SF_ERR": 0.3,
         "W_SF": 1,
-        "W_SF_ERR": 1.,
+        "W_SF_ERR": 0.3,
         #"V_SF": 0.827,
         #"V_SF_ERR": 0.042,
         #"SHIFT_SF": 0.417,
@@ -262,7 +331,7 @@ SF = {
         #'SMEAR_SF_ERR': 0.614,
         'SHIFT_SF': 0.181,
         #'SHIFT_SF_ERR' : 0.423,
-        'SHIFT_SF_ERR' : 1.423,
+        'SHIFT_SF_ERR' : 0.423+1,
         'SMEAR_SF': 0.997,
         'SMEAR_SF_ERR': 0.053,
 
@@ -272,7 +341,7 @@ SF = {
         "BB_SF": 1.,
         "BB_SF_ERR": 0.3, 
         "W_SF": 1.,
-        "W_SF_ERR": 1.,
+        "W_SF_ERR": 0.3,
         ####WTAG CR WITH INCLUSIVE PT
         #"V_SF": 0.770,
         #"V_SF_ERR": 0.034,
@@ -903,13 +972,18 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
         sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
     print("Systs being considered =", sys_shape_dict.keys())
-    tqqeffSF = rl.IndependentParameter("tqqeffSF_{year}".format(year=args.year), 1.0, 0, 10)
     tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF_{year}".format(year=args.year), 1.0, 0, 10)
-    tqqnormSF = rl.IndependentParameter("tqqnormSF_{year}".format(year=args.year), 1.0, 0, 10)
     tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
     tqqnormSF_highbvl = rl.IndependentParameter("tqqnormSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
     tqqeffSF_lowbvl = rl.IndependentParameter("tqqeffSF_lowbvl_{year}".format(year=args.year), 1.0, 0, 10)
     tqqnormSF_lowbvl = rl.IndependentParameter("tqqnormSF_lowbvl_{year}".format(year=args.year), 1.0, 0, 10)
+
+    if args.constrainedttbar:
+        tqqeffSF = rl.NuisanceParameter('tqqeffSF_{year}'.format(year=args.year), 'lnN')
+        tqqnormSF = rl.NuisanceParameter('tqqnormSF_{year}'.format(year=args.year), 'lnN')
+    else:
+        tqqeffSF = rl.IndependentParameter("tqqeffSF_{year}".format(year=args.year), 1.0, 0, 10)
+        tqqnormSF = rl.IndependentParameter("tqqnormSF_{year}".format(year=args.year), 1.0, 0, 10)
 
     # with open(args.pickle, "rb") as f:
     #    df = pickle.load(f)
@@ -1193,6 +1267,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 "tt": get_templ(
                     region, "tt", ptbin, tagger, fourptbins=args.four_pt_bins
                 ),
+                "vv": get_templ(
+                    region, "vv", ptbin, tagger, fourptbins=args.four_pt_bins
+                ),
                 "wlnu": get_templ(
                     region, "wlnu", ptbin, tagger, fourptbins=args.four_pt_bins
                 ),
@@ -1231,9 +1308,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             if args.qcd_ftest:
                 include_samples = [siggy]  # qcd here?
             elif args.ftest or args.h_sensitivity:
-                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy]
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy]
             else:
-                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy, bsiggy]
 
             for sName in include_samples:
                 # some mock expectations
@@ -1334,7 +1411,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     mtempl = AffineMorphTemplate(templ)
                     _extra_scaling = 4.
                     if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] : #and "pass" in region:
-                        _extra_scaling = 2. #4./SF[args.year]['SHIFT_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.
+                        _extra_scaling = 4. #4./SF[args.year]['SHIFT_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
                         realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
@@ -1392,7 +1469,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     include_samples = ["QCD"]
                 #elif args.h_sensitivity:
                 else:
-                    include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb","QCD"]
+                    include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb","QCD", "vv"]
                 for sName in include_samples:
                     _sample = get_templ(
                         region, sName, ptbin, tagger, fourptbins=args.four_pt_bins
@@ -1461,10 +1538,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ch_fail = model[f"ptbin{ptbin}passTbvlfailL"]
 
             ### W MISTAGGING ###  
-            qq_samples = ["zqq","wqq",siggy]
+            qq_samples = ["zqq","wqq","vv",siggy]
             for sName in qq_samples:  
                 sample_pass = ch_pass[sName]
                 sample_fail = ch_fail[sName]
+                '''
                 ### PHIL WAY, I DONT KNOW IF THIS WORKS
                 for sf, unc in zip([SF[args.year]['W_SF']], [SF[args.year]['W_SF_ERR']]):                      
                     template_pass_pass = get_templ(
@@ -1488,7 +1566,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         rmod = (yield_pass * sf) / (yield_fail * sff)
                         sample_fail.setParamEffect(indepW, (1 - sys_Weff * unc * rmod))
                         logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passlowbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
-            '''
+                '''
                 ### ANDRZEJ WEY, I THINK THIS WORKS
                 for sf, unc in zip([SF[args.year]['W_SF']], [SF[args.year]['W_SF_ERR']]):                      
                     template_pass_pass = get_templ(
@@ -1513,7 +1591,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         sample_pass.setParamEffect(indepW, (1 - sys_Weff * unc * rmod))
                         logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
 
-            '''
             ### BB MISTAGGING ###
             bb_samples = ["zbb", "hbb",]
             if not args.ftest: bb_samples += [bsiggy]
@@ -1552,7 +1629,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ch_fail = model[f"ptbin{ptbin}failT"]
             ch_pass_pass = model[f"ptbin{ptbin}passTbvlpassL"]
             ch_pass_fail = model[f"ptbin{ptbin}passTbvlfailL"]
-            qq_samples = ["wqq", "zqq", "zbb", "hbb", siggy]
+            qq_samples = ["wqq", "zqq", "zbb", "hbb", "vv", siggy]
             if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
                 log.debug(f"Working on {sName}")
@@ -1603,7 +1680,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             failkey = f"ptbin{ptbin}failT"
             ch_fail = model[failkey]
             ch_pass = model[passkey]
-            qq_samples = ["wqq", "zqq", "zbb", "hbb",] #added siggy here? 
+            qq_samples = ["wqq", "zqq", "zbb", "hbb","vv"] #added siggy here? 
             for sName in qq_samples:  
                 sample_fail = ch_fail[f"{sName}"]
                 sample_pass = ch_pass[f"{sName}"]
@@ -1694,7 +1771,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             qcdparams = np.array(
                 [
-                    rl.IndependentParameter("qcdparam_ptbin{ptbin}_msdbin{i}_{year}".format(ptbin, i, year=args.year), 0)
+                    rl.IndependentParameter("qcdparam_ptbin{ptbin}_msdbin{i}_{year}".format(ptbin=ptbin, i=i, year=args.year), 0)
                     for i in range(msd.nbins)
                 ]
             )
@@ -1726,6 +1803,53 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 fail_qcd,
             )
             passCh.addSample(pass_qcd)
+
+    if args.constrainedttbar: 
+        log.debug("Assuming muonCR has been fit independently and we can run ftests by applying constrained nuisances.")
+        for ptbin in range(npt):
+            passkey = f"ptbin{ptbin}pass"
+            if args.highbvl:
+                passkey = f"ptbin{ptbin}passTbvlpassL"
+                sfkey="highbvl"
+            elif args.lowbvl:
+                passkey = f"ptbin{ptbin}passTbvlfailL"
+                sfkey="lowbvl"
+            failCh = model[f'ptbin{ptbin}failT']
+            passCh = model[passkey]
+            tqqpass = passCh['tt']
+            tqqfail = failCh['tt']
+            stqqpass = passCh['st']
+            stqqfail = failCh['st']
+            sumPass = tqqpass.getExpectation(nominal=True).sum()
+            sumFail = tqqfail.getExpectation(nominal=True).sum()
+            sumPass += stqqpass.getExpectation(nominal=True).sum()
+            sumFail += stqqfail.getExpectation(nominal=True).sum()
+            tqqPF =  sumPass / sumFail
+            normSF, normunc = topSF[args.year][sfkey]["tqqnormSF_val"], topSF[args.year][sfkey]["tqqnormSF_unc"]
+            effSF, effunc = topSF[args.year][sfkey]["tqqeffSF_val"], topSF[args.year][sfkey]["tqqeffSF_unc"]
+
+            normunc = 1. + normunc / normSF
+            effunc = 1. + effunc / effSF
+ 
+            effsf, effup, effdown = flipSF(effSF, effunc, sumPass, sumFail)
+
+            tqqpass.scale(normSF)
+            tqqfail.scale(normSF)
+            tqqpass.scale(effSF)
+            tqqfail.scale(effsf)
+            tqqpass.setParamEffect(tqqeffSF, effunc)
+            tqqfail.setParamEffect(tqqeffSF, effup, effdown)
+            tqqpass.setParamEffect(tqqnormSF, normunc)
+            tqqfail.setParamEffect(tqqnormSF, normunc)
+
+            stqqpass.scale(normSF)
+            stqqfail.scale(normSF)
+            stqqpass.scale(effSF)
+            stqqfail.scale(effsf)
+            stqqpass.setParamEffect(tqqeffSF, effunc)
+            stqqfail.setParamEffect(tqqeffSF, effup, effdown)
+            stqqpass.setParamEffect(tqqnormSF, normunc)
+            stqqfail.setParamEffect(tqqnormSF, normunc)
 
     if args.muonCR:
         log.debug("Adding constraints to tt and st in SR") 
@@ -1800,6 +1924,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 sumPass += stqqpass.getExpectation(nominal=True).sum()
                 sumFail += stqqfail.getExpectation(nominal=True).sum()
                 tqqPF =  sumPass / sumFail
+
                 tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
                 tqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
                 tqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
@@ -1808,7 +1933,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 stqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
                 stqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)
                 stqqfail.setParamEffect(tqqnormSF, 1 * tqqnormSF)
-    
+ 
         # Top CR
         log.debug("Adding Top CR") 
         for region in list(set(pass_regs+fail_regs)):
@@ -1832,12 +1957,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     "dy": get_templ(
                         region, "dy", 0, tagger, fourptbins=args.four_pt_bins,muon=True,observable=msd_muon
                     ),
-                    #"wqq": get_templ(
-                    #    region, "wqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
-                    #),
-                    #"zqq": get_templ(
-                    #    region, "zqq", 0, tagger, fourptbins=args.four_pt_bins,muon=True,
-                    #),
             }
     
             include_samples = ["tt", "wlnu", "dy", "st","qcd",] 
@@ -1968,7 +2087,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             tqqfail = model["muonCRfailT"]["tt"]
             stqqpass = model[passkey]["st"]
             stqqfail = model["muonCRfailT"]["st"]
-            tqqPF = (tqqpass.getExpectation(nominal=True).sum() + stqqpass.getExpectation(nominal=True).sum())/ ( tqqfail.getExpectation(nominal=True).sum() + tqqfail.getExpectation(nominal=True).sum())
+            tqqPF = (tqqpass.getExpectation(nominal=True).sum() + stqqpass.getExpectation(nominal=True).sum())/ ( tqqfail.getExpectation(nominal=True).sum() + stqqfail.getExpectation(nominal=True).sum())
+
             tqqpass.setParamEffect(tqqeffSF, 1 * tqqeffSF)
             tqqfail.setParamEffect(tqqeffSF, (1 - tqqeffSF) * tqqPF + 1)
             tqqpass.setParamEffect(tqqnormSF, 1 * tqqnormSF)

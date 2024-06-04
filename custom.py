@@ -137,6 +137,7 @@ def FTest(seed=1, base=False, gen=False, fits=False, args=None, mc=True):
                 " --toysFrequentist " 
                 " -n Toys "
                 " -t {t} --seed {s} "
+                " --expectSignal=0 --freezeParameters r --setParameters r=0 "
                 " -d {ws}".format(ws="higgsCombine.BaseFit.MultiDimFit.mH120.root", t=args.toys, s=seed) 
                 +  overall_conf
         )

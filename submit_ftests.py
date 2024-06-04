@@ -80,10 +80,10 @@ if __name__ == '__main__':
             #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/4Apr24-SR-fulldataset/results/TEMPLATES.root",
         }
     templates_mu = {
-        "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES.root",
-        "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES.root",
-        "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES.root",
-        "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES.root",
+        "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
+        "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
+        "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
+        "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
     }
  
     if args.make:
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                     ) 
                 else:
                     cmd = (
-                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {templates[args.year]} --o {args.opath}{pt}{rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {templates_mu[args.year]} " #--muonCR --collapse "
+                        f"python3 rhalphalib_zprime.py --year {args.year} --root_file {templates[args.year]} --o {args.opath}{pt}{rho} --do_systematics --tagger {args.tagger} --MCTF --ftest --root_file_mu {templates_mu[args.year]} --constrainedttbar " ## Trying to exclude muonCR in favor of constrained nuisances from a pre-fit to muonCR
                         #"--mutemplates temps/templatesmuCR_preapproval{yearshort}_CC.root  --muonCR "
                         + (" --is_blinded " if args.is_blinded else "")
                         + (" --highbvl" if args.highbvl else "") 

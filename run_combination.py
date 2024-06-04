@@ -39,10 +39,10 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 opath=os.path.abspath(args.opath)
 paths = {
-    "2016APV" : "results/limits/2016APV_unblinded_29May/pnmd2prong/ipt2,0_irho3,0/",
-    "2016" : "results/limits/2016_unblinded_29May/pnmd2prong/ipt1,2_irho0,2/",
-    "2017" : "results/limits/2017_unblinded_29May/pnmd2prong/ipt2,0_irho3,0/",
-    "2018" : "results/limits/2018_unblinded_29May/pnmd2prong/ipt1,0_irho0,0/",
+    "2016APV" : "results/limits/2016APV_unblinded_1Jun/pnmd2prong/ipt2,0_irho3,0/",
+    "2016" : "results/limits/2016_unblinded_1Jun/pnmd2prong/ipt2,1_irho2,0/",
+    "2017" : "results/limits/2017_unblinded_1Jun/pnmd2prong/ipt2,0_irho3,0/",
+    "2018" : "results/limits/2018_unblinded_1Jun/pnmd2prong/ipt1,0_irho1,0/",
 }
 
 def combine():
