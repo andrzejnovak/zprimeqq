@@ -80,20 +80,20 @@ parser.add_argument(
     help="mass point like 150.",
 )
 # parser.add_argument("--root_path", action='store', type=str, required=True, help="Path to ROOT holding templates.")
-parser.add_argument(
-    "--root_file",
-    action="store",
-    type=str,
-    required=True,
-    help="Path to ROOT holding templates.",
-)
-parser.add_argument(
-    "--root_file_mu",
-    action="store",
-    type=str,
-    required=False,
-    help="Path to ROOT holding mu templates.",
-)
+#parser.add_argument(
+#    "--root_file",
+#    action="store",
+#    type=str,
+#    required=True,
+#    help="Path to ROOT holding templates.",
+#)
+#parser.add_argument(
+#    "--root_file_mu",
+#    action="store",
+#    type=str,
+#    required=False,
+#    help="Path to ROOT holding mu templates.",
+#)
 parser.add_argument(
     "--h_sensitivity", action="store_true", help="Just to run sensitivty check for H with toy 150 invfb data."
 )
@@ -137,6 +137,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--decorr_scale_cat_pt", action="store_true", help="Decorrelate scale highbvl and lowbvl per pt bin."
+)
+parser.add_argument(
+    "--mask_outlier", action="store_true", help="Mask outlying data point."
 )
 
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
@@ -269,10 +272,12 @@ SF = {
         #'SMEAR_SF': 1.228,
         #'SMEAR_SF_ERR': 0.37875
         ### W CR >400 GeV
-        'V_SF': 0.961,
-        'V_SF_ERR': 0.137,
+        #'V_SF': 0.961,
+        #'V_SF_ERR': 0.137,
+        'V_SF' : 1,
+        'V_SF_ERR' : 0.1,
         'SHIFT_SF' : 1.206,
-        'SHIFT_SF_ERR' : 0.206 + 1.,
+        'SHIFT_SF_ERR' : 0.75 + 1.,
         'SMEAR_SF' : 1.115,
         'SMEAR_SF_ERR' : 0.122,
     },
@@ -290,8 +295,10 @@ SF = {
         #"SMEAR_SF": 1.117,
         #"SMEAR_SF_ERR":0.046,
         ### W CR >400 GeV
-        "V_SF": 0.635,
-        "V_SF_ERR": 0.116,
+        #"V_SF": 0.635,
+        #"V_SF_ERR": 0.116,
+        'V_SF' : 1,
+        'V_SF_ERR' : 0.28,
         "SHIFT_SF": -0.559,
         "SHIFT_SF_ERR": 0.664 + 1,
         "SMEAR_SF": 1.228,
@@ -323,8 +330,10 @@ SF = {
         #"SMEAR_SF": 1.126,
         #"SMEAR_SF_ERR": 0.11,
         ####10May
-        "V_SF" : 0.916,
-        "V_SF_ERR" : 0.091,
+        #"V_SF" : 0.916,
+        #"V_SF_ERR" : 0.091,
+        'V_SF' : 1,
+        'V_SF_ERR' : 0.1,
         #'SHIFT_SF': 0.286,
         #'SHIFT_SF_ERR': 0.491,
         #'SMEAR_SF': 0.640,
@@ -351,8 +360,11 @@ SF = {
         #"SMEAR_SF": 1.034,
         #"SMEAR_SF_ERR":0.026,
         ###WTAG CR WITH PT>400 (10May24)
-        'V_SF': 0.827,
-        'V_SF_ERR': 0.072,
+        #'V_SF': 0.827,
+        #'V_SF_ERR': 0.072,
+        ###NEW STRATEGY FOR 2PRONG EFF, USE 1 +- 1sig where sig is bound from low pt CR
+        'V_SF' : 1,
+        'V_SF_ERR' : 0.17,
         'SHIFT_SF': 0.184,
         'SHIFT_SF_ERR': 0.441 + 1.,
         'SMEAR_SF': 1.17725,
@@ -371,7 +383,7 @@ def badtemp_ma(hvalues, eps=0.0000001, mask=None):
     # Need minimum size & more than 1 non-zero bins
     tot = np.sum(hvalues[mask])
     count_nonzeros = np.sum(hvalues[mask] > 0)
-    if (tot < eps) or (count_nonzeros < 3):
+    if (tot < eps) or (count_nonzeros < 5):
         return True
     else:
         return False
@@ -383,6 +395,7 @@ def smass(sName):
         "wqq",
         "tt",
         "st",
+        "vv",
     ]:
         _mass = 80.0
     elif sName in ["zqq", "zcc", "zbb"]:
@@ -416,8 +429,6 @@ with open("xsec.json") as f:
     xsec_dict = json.load(f)
 
 short_to_long = {
-    # "wqq": "WJetsToQQ",
-    # "zqq": "ZJetsToQQ",
     "wqq": "wqq",
     "wlnu": "wlnu",
     "tt": "tt",
@@ -426,16 +437,7 @@ short_to_long = {
     "zbb": "zbb",
     "hbb": "hbb",    
     "dy": "dy",
-    # "tt": "TTbar",
-    # "st": "SingleTop",
-    # "wlnu": "WJetsToLNu",
-    # "m50": "VectorZPrimeToQQ_M50",
-    # "m75": "VectorZPrimeToQQ_M75",
-    # "m100": "VectorZPrimeToQQ_M100",
-    # "m125": "VectorZPrimeToQQ_M125",
-    # "m150": "VectorZPrimeToQQ_M150",
-    # "m200": "VectorZPrimeToQQ_M200",
-    # "m250": "VectorZPrimeToQQ_M250",
+    "vv": "vv",
     "m50": "zpqq50",
     "m55": "zpqq55",
     "m60": "zpqq60",
@@ -550,14 +552,14 @@ sys_types = {
     "btagEffStat": "lnN",
     "btagWeight": "lnN",
     "pileup_weight": "lnN",
-    "Z_d2kappa_EW": "lnN",
-    "Z_d3kappa_EW": "lnN",
-    "W_d2kappa_EW": "lnN",
-    "W_d3kappa_EW": "lnN",
-    "d1kappa_EW": "lnN",
-    "d1K_NLO": "lnN",
-    "d2K_NLO": "lnN",
-    "d3K_NLO": "lnN",
+    "Z_d2kappa_EW": "shape",
+    "Z_d3kappa_EW": "shape",
+    "W_d2kappa_EW": "shape",
+    "W_d3kappa_EW": "shape",
+    "d1kappa_EW": "shape",
+    "d1K_NLO": "shape",
+    "d2K_NLO": "shape",
+    "d3K_NLO": "shape",
     "L1Prefiring": "lnN",
     "scalevar_7pt": "lnN",
     "scalevar_3pt": "lnN",
@@ -730,12 +732,31 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 #isinterp = signals[0] in ["m"+str(x) for x in range(40,350,5)] and signals[0] not in all_signals
 #if isinterp:
 #    log.debug(f"m {signals[0]} is interpolated signal")
-root_file_signals = uproot.open(args.root_file.replace(".root","_interpolated.root"))
-root_fn_mu = args.root_file_mu
-root_fn = args.root_file
-print(root_fn_mu,root_fn)
-root_file_mu = uproot.open(root_fn_mu)
-root_file = uproot.open(root_fn)
+
+
+hist_files = {
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605.root",
+}
+
+hist_signal_files = {
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605_interpolated_sigtemplfix.root",
+}
+
+hist_mucr_files = {
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
+}
+root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
+root_file_mu = uproot.open(hist_mucr_files[args.year])
+root_file = uproot.open(hist_files[args.year])
 def get_templ(
     region,
     sample,
@@ -796,6 +817,8 @@ def get_templ(
         hist_key = "msd_muon"
     else:
         hist_key = "msd"
+  
+    log.debug(f"sample={sample} region={region} ptbin={ptbin} hist_values={hist_values}")
     return (hist_values, hist_edges, hist_key, hist_variances)
 
 def one_bin(template):
@@ -1311,13 +1334,17 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy]
             else:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy, bsiggy]
-
+            
             for sName in include_samples:
                 # some mock expectations
                 templ = templates[sName]
                 logging.info(f"Adding sample={sName} in ptbin={ptbin}, region={region}.")
-
-                #if args.qcd_ftest:
+                if badtemp_ma(templ[0]):
+                    logging.info(f"Sample has bad template: {templ[0]}. Filling zeros.")
+                    templ = (np.zeros_like(templ[0]),templ[1],templ[2],templ[3])
+                    logging.info(f"After filling: {templ[0]}.")
+                    ##continue
+                #if args.qcd_(ftest:
                 #    stype = rl.Sample.SIGNAL if sName == "zqq" else rl.Sample.BACKGROUND
                 #    # templ[0] = templ[0]*1e-4 #Scale down signal?
                 #if args.ftest: #qcd_ftest and ftest here for now
@@ -1356,8 +1383,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     sample.setParamEffect(sys_eleveto, 1.005)
                     sample.setParamEffect(sys_muveto, 1.005)
                     sample.setParamEffect(sys_tauveto, 1.05)
-
-                    sample.autoMCStats(lnN=True,sample_name=f"{sName}_{args.year}")
+                    lnN = True # False if sName in [siggy, bsiggy] else True #Use shape unc for signal MC stats
+                    sample.autoMCStats(lnN=lnN,sample_name=f"{sName}_{args.year}")
 
                     sys_names = [
                         "JES",
@@ -1382,9 +1409,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         logging.debug(f"  Adding systematic: '{sys_name}'")
                         if (
                             ("NLO" in sys_name) or ("EW" in sys_name)
-                        ) and not sName in ["zqq", "wqq"]:
+                        ) and not sName in ["zqq", "wqq", "zbb"]:
                             continue
-                        if ("Z_d" in sys_name) and sName not in ["zqq","dy"]:
+                        if ("Z_d" in sys_name) and sName not in ["zqq","dy", "zbb"]:
                             continue
                         if ("W_d" in sys_name) and sName not in ["wqq","wlnu"]:
                             continue
@@ -1411,12 +1438,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     mtempl = AffineMorphTemplate(templ)
                     _extra_scaling = 4.
                     if sName not in ['qcd', 'dy', 'wlnu',"tt","st",] : #and "pass" in region:
-                        _extra_scaling = 4. #4./SF[args.year]['SHIFT_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.
                         log.debug(f"Adding SF shift/smear nuisance for sample {sName} with extra scaling {_extra_scaling}.")
                         realshift = SF[args.year]['SHIFT_SF_ERR']/smass('wqq') * smass(sName) * _extra_scaling
                         _up = mtempl.get(shift=realshift)
                         _down = mtempl.get(shift=-realshift)
-                        if badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
+                        if badtemp_ma(templ[0]) or badtemp_ma(_up[0]) or badtemp_ma(_down[0]):
                             log.info("Filling sample {} in ptbin {} in channel {} with zero, scale systematic would be empty. nominal template={}, up={}, down={}".format(sName,ptbin,ch.name,np.round(templ[0],5),np.round(_up[0],5), np.round(_down[0],5)))
                             sample.mask = np.ones_like(_down[0])                
                         #    continue
@@ -1523,14 +1549,16 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             # drop bins outside rho validity
             # validbins[ptbin][0:2] = False
             mask = validbins[ptbin]
+            if args.year=="2016APV" and ptbin==3 and "bvl_pass_L" in region and args.mask_outlier:
+                mask[9] = False
             ch.mask = mask
         
     # Systematics    
     # ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
     if args.do_systematics and not args.ftest:
         # Do 2-region SFs
-        indep = rl.IndependentParameter("failscale_{year}".format(year=args.year), 1., 0, 100)
-        indepW = rl.IndependentParameter("failscaleW_{year}".format(year=args.year), 1., 0, 100)
+        indep = rl.IndependentParameter("failscale_{year}".format(year=args.year), 50., 49.9, 50.1)
+        indepW = rl.IndependentParameter("failscaleW_{year}".format(year=args.year), 50.,49.9, 50.1)
 
         for ptbin in range(npt):
             log.debug(f"Making BB and QQ SFs for {ptbin}. Channels are {model.channels}.")
@@ -1542,8 +1570,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             for sName in qq_samples:  
                 sample_pass = ch_pass[sName]
                 sample_fail = ch_fail[sName]
-                '''
                 ### PHIL WAY, I DONT KNOW IF THIS WORKS
+                '''
                 for sf, unc in zip([SF[args.year]['W_SF']], [SF[args.year]['W_SF_ERR']]):                      
                     template_pass_pass = get_templ(
                             "pass_T_bvl_pass_L", short_to_long[sName], ptbin, tagger, fourptbins=args.four_pt_bins
@@ -1592,7 +1620,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         logging.debug(f"  Nuisance: '{sys_Weff.name}', sample: '{sName}', region: 'passhighbvl', ptbin: {ptbin}, sf: {sf:.3f}, sfunc_nominal: {unc:.3f}, card_unc: {sfunc:.3f}/{sfunc:.3f}")
 
             ### BB MISTAGGING ###
-            bb_samples = ["zbb", "hbb",]
+            bb_samples = ["zbb","hbb"]
             if not args.ftest: bb_samples += [bsiggy]
             for sName in bb_samples:
                 for sf, unc in zip([SF[args.year]['BB_SF']], [SF[args.year]['BB_SF_ERR']]):                      
@@ -1629,8 +1657,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ch_fail = model[f"ptbin{ptbin}failT"]
             ch_pass_pass = model[f"ptbin{ptbin}passTbvlpassL"]
             ch_pass_fail = model[f"ptbin{ptbin}passTbvlfailL"]
-            qq_samples = ["wqq", "zqq", "zbb", "hbb", "vv", siggy]
-            if not args.ftest: qq_samples += [bsiggy] 
+            qq_samples = ["wqq", "zqq", "zbb", "hbb", "vv", siggy, bsiggy]
+            #if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
                 log.debug(f"Working on {sName}")
                 log.debug(f"ch_pass_pass samples are {ch_pass_pass.samples}")
@@ -2143,4 +2171,6 @@ if __name__ == "__main__":
 
     elapsed = time.time() - start_time
     pprint(f"Walltime: {time.strftime('%H:%M:%S', time.gmtime(elapsed))}")
+
+
 

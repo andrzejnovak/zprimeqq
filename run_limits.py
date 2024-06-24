@@ -39,6 +39,8 @@ parser.add_argument('--highbvl', dest='highbvl', action='store_true',help='Run o
 parser.add_argument('--gq', dest='gq', action='store_true',help='Plot gq limit')
 parser.add_argument('--xsec', dest='xsec',action='store_true',help='Plot xsec limit')
 parser.add_argument('--decorr_scale_cat', dest='decorr_scale_cat',action='store_true',help='Decorrelate scale by category')
+parser.add_argument('--decorr_scale_pt', dest='decorr_scale_pt',action='store_true',help='Decorrelate scale by pt')
+parser.add_argument('--mask_outlier', dest='mask_outlier',action='store_true',help='Mask outlying data points')
 parser.add_argument('-p', dest='p', action='store_true',help='Parallel')
 #parser.add_argument('--injected_signal', dest='injected_signal', action='store',type=float,help='injected signal',required=True)
 #parser.add_argument('--param', dest='param', choices=["r","r_b","r_q",], action='store',type=str,help='Parameter of interest')
@@ -57,11 +59,11 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 commands = []
 if args.year == "2016APV":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho2,0/m{args.sigmass}/m{args.sigmass}_model/"
 if args.year == "2016":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,2_irho2,2/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2017":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,1_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2018":
     OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "combination":
@@ -84,9 +86,9 @@ templates_mu = {
 }
 
 tf_orders = {
-    "2016APV" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,3 ",
+    "2016APV" : " --ipt 2,0 --irho 2,0 --iptMC 0,2 --irhoMC 1,3 ",
     "2016" : " --ipt 2,2 --irho 2,2 --iptMC 0,2 --irhoMC 1,3 ",
-    "2017" : " --ipt 2,0 --irho 3,0 --iptMC 0,2 --irhoMC 1,4 ",
+    "2017" : " --ipt 2,1 --irho 3,0 --iptMC 0,2 --irhoMC 1,4 ",
     "2018" : " --ipt 1,0 --irho 1,0 --iptMC 2,2 --irhoMC 3,4 ",
 }
 
@@ -95,7 +97,7 @@ if args.run:
 if args.build:
     taskname="build_"+str(args.sigmass)+"_"+args.postfix
 if args.r_b:
-    taskname += "_rb"
+    taskname="_rb"
 if args.condor:
     condor_str = """ --memory 4000 --job-mode condor --sub-opts=\'+JobFlavour = \"workday\"\nRequestCpus = 2\n+MaxRuntime = 120000\' --task-name {taskname} """.format(taskname=taskname)
 overall_cmd = ""
@@ -112,7 +114,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --root_file {templates[args.year]} --root_file_mu {templates_mu[args.year]} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} --collapse " #-vv"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} {'--decorr_scale_pt' if args.decorr_scale_pt else ''} --collapse {'--mask_outlier' if args.mask_outlier else ''}" #-vv"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
@@ -152,7 +154,7 @@ if args.run:
     #cmd = f"cd {OPATH}"#results/bias_tests/{args.opath}/pnmd2prong_0p01/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
     #commands.append(cmd)
     #os.chdir(OPATH)
-    cmd = """ echo "combineTool.py -M AsymptoticLimits """.format(opath=OPATH)
+    cmd = """ echo "combineTool.py -M AsymptoticLimits --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 """.format(opath=OPATH)
     cmd += overall_cmd
     if args.condor:
         cmd += condor_str

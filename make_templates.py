@@ -102,8 +102,8 @@ if args.root_path:
                         if "HEM" in syst and args.year!="2018" : continue
                         if "muo" in syst: continue
                         if syst in ['W_d2kappa_EW', 'W_d3kappa_EW'] and not isamp in ["wqq","wlnu"]: continue
-                        if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy"]: continue
-                        if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy",]: continue
+                        if syst in ['Z_d2kappa_EW', 'Z_d3kappa_EW'] and not isamp in ["zqq","dy","zbb"]: continue
+                        if syst in ['d1kappa_EW','d1K_NLO','d2K_NLO','d3K_NLO'] and isamp not in ["wqq","wlnu","zqq","dy","zbb"]: continue
                         syst_name_up = sys_name_updown[syst][0]
                         syst_name_down = sys_name_updown[syst][1]
  

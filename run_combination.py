@@ -39,12 +39,13 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 opath=os.path.abspath(args.opath)
 paths = {
-    "2016APV" : "results/limits/2016APV_unblinded_1Jun/pnmd2prong/ipt2,0_irho3,0/",
-    "2016" : "results/limits/2016_unblinded_1Jun/pnmd2prong/ipt2,1_irho2,0/",
-    "2017" : "results/limits/2017_unblinded_1Jun/pnmd2prong/ipt2,0_irho3,0/",
-    "2018" : "results/limits/2018_unblinded_1Jun/pnmd2prong/ipt1,0_irho1,0/",
+    "2016APV" : "results/limits/2016APV_unblinded_sigtemplfix_v1/pnmd2prong/ipt2,0_irho2,0/",
+    "2016" : "results/limits/2016_unblinded_sigtemplfix_v1/pnmd2prong/ipt2,2_irho2,2/",
+    "2017" : "results/limits/2017_unblinded_sigtemplfix_v1/pnmd2prong/ipt2,1_irho3,0/",
+    "2018" : "results/limits/2018_unblinded_sigtemplfix_v1/pnmd2prong/ipt1,0_irho1,0/",
 }
 
+pprint(paths)
 def combine():
     master_str = "combineCards.py "
     for era in args.eras:
