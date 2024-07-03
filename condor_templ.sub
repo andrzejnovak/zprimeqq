@@ -1,0 +1,14 @@
+executable = XXX
+arguments = $(ProcId)
+output                = logs/$(ClusterId).$(ProcId).out
+error                 = logs/$(ClusterId).$(ProcId).err
+log                   = logs/$(ClusterId).$(ProcId).log
+
+# Send the job to Held state on failure.
+# Periodically retry the jobs every 10 minutes, up to a maximum of 5 retries.
+periodic_release =  ((CurrentTime - EnteredCurrentStatus) > 20)
+
++JobFlavour = espresso
+RequestCpus = 1
++MaxRuntime = 6000
+queue 1
