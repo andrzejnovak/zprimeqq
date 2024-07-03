@@ -41,6 +41,7 @@ parser.add_argument('--xsec', dest='xsec',action='store_true',help='Plot xsec li
 parser.add_argument('--decorr_scale_cat', dest='decorr_scale_cat',action='store_true',help='Decorrelate scale by category')
 parser.add_argument('--decorr_scale_pt', dest='decorr_scale_pt',action='store_true',help='Decorrelate scale by pt')
 parser.add_argument('--mask_outlier', dest='mask_outlier',action='store_true',help='Mask outlying data points')
+parser.add_argument('--shift_sf_err', dest='shift_sf_err',action='store',default=1.,type=float,help='SHIFT_SF_ERR')
 parser.add_argument('-p', dest='p', action='store_true',help='Parallel')
 #parser.add_argument('--injected_signal', dest='injected_signal', action='store',type=float,help='injected signal',required=True)
 #parser.add_argument('--param', dest='param', choices=["r","r_b","r_q",], action='store',type=str,help='Parameter of interest')
@@ -114,7 +115,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} {'--decorr_scale_pt' if args.decorr_scale_pt else ''} --collapse {'--mask_outlier' if args.mask_outlier else ''}" #-vv"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} {'--decorr_scale_pt' if args.decorr_scale_pt else ''} --collapse {'--mask_outlier' if args.mask_outlier else ''} --shift_sf_err {args.shift_sf_err}" #-vv"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
