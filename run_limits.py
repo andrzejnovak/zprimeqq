@@ -52,7 +52,7 @@ args = parser.parse_args()
 def gauss(x, a, b, c):
     return a * py.exp(-(x - b)**2.0 / (2 * c**2))
 
-cmssw_str='''#!/bin/sh\nulimit -s unlimited\nset -e\ncd /eos/home-j/jekrupa/fitting/CMSSW_11_3_4/src\nexport SCRAM_ARCH=slc7_amd64_gcc900\nsource /cvmfs/cms.cern.ch/cmsset_default.sh\neval `scramv1 runtime -sh`'''
+cmssw_str='''#!/bin/sh\nulimit -s unlimited\nset -e\ncd /eos/home-j/jekrupa/fitting/CMSSW_14_1_0_pre4/src\nexport SCRAM_ARCH=el9_amd64_gcc12\nsource /cvmfs/cms.cern.ch/cmsset_default.sh\neval `scramv1 runtime -sh`'''
 
 
 ROOT.PyConfig.IgnoreCommandLineOptions = True

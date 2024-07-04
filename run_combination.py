@@ -43,10 +43,14 @@ paths = {
     #"2016" : "results/limits/2016_unblinded_sigtemplfix_v1/pnmd2prong/ipt2,2_irho2,2/",
     #"2017" : "results/limits/2017_unblinded_sigtemplfix_v1/pnmd2prong/ipt2,1_irho3,0/",
     #"2018" : "results/limits/2018_unblinded_sigtemplfix_v1/pnmd2prong/ipt1,0_irho1,0/",
-    "2016APV" : "results/limits/2016APV_22Jun24_unblinded_v0/pnmd2prong/ipt2,0_irho2,0/",
-    "2016" : "results/limits/2016_22Jun24_unblinded_v0/pnmd2prong/ipt2,2_irho2,2/",
-    "2017" : "results/limits/2017_22Jun24_unblinded_v0/pnmd2prong/ipt2,1_irho3,0/",
-    "2018" : "results/limits/2018_22Jun24_unblinded_v0/pnmd2prong/ipt1,0_irho1,0/",
+    #"2016APV" : "results/limits/2016APV_22Jun24_unblinded_v0/pnmd2prong/ipt2,0_irho2,0/",
+    #"2016" : "results/limits/2016_22Jun24_unblinded_v0/pnmd2prong/ipt2,2_irho2,2/",
+    #"2017" : "results/limits/2017_22Jun24_unblinded_v0/pnmd2prong/ipt2,1_irho3,0/",
+    #"2018" : "results/limits/2018_22Jun24_unblinded_v0/pnmd2prong/ipt1,0_irho1,0/",
+    "2016APV" : "results/limits/2016APV_unblinded_3Jul24_sferr0p5/pnmd2prong/ipt2,0_irho2,0",
+    "2016" : "results/limits/2016_unblinded_3Jul24_sferr0p5/pnmd2prong/ipt2,2_irho2,2",
+    "2017" : "results/limits/2017_unblinded_3Jul24_sferr0p5/pnmd2prong/ipt2,1_irho3,0",
+    "2018" : "results/limits/2018_unblinded_3Jul24_sferr0p5/pnmd2prong/ipt1,0_irho1,0",
 }
 
 pprint(paths)
