@@ -6,27 +6,10 @@ qcd:
   label: QCD
   color: 'gray'
   hatch: 
-  contains:
-    - 2016APV_qcd
-    - 2016_qcd
-    - 2017_qcd
-    - 2018_qcd
-# 2016APV_qcd:
-#   label: QCD
-#   color: 'gray'
-#   hatch:
-# 2016_qcd:
-#   label: QCD
-#   color: 'gray'
-#   hatch:
-# 2017_qcd:
-#   label: QCD
-#   color: 'gray'
-#   hatch:
-# 2018_qcd:
-#   label: QCD
-#   color: 'gray'
-#   hatch:
+2017_qcd:
+  label: QCD
+  color: 'gray'
+  hatch:
 total:
   label: total
   color: '#bd1f01'
@@ -44,6 +27,10 @@ b150:
   label: $Z'(b\bar{b})$
   color: '#bd1f01'
   hatch: \\\\\\
+b220:
+  label: $Z'(b\bar{b})$
+  color: '#bd1f01'
+  hatch: \\\\\\
 zbb:
   label: $Z(b\bar{b})$
   color: '#bd1f01'
@@ -52,19 +39,39 @@ m150:
   label: $Z'(q\bar{q})$
   color: '#ffa90e'
   hatch: \\\\\\\
+m220:
+  label: $Z'(q\bar{q})$
+  color: '#ffa90e'
+  hatch: \\\\\\\
 zqq:
   label: $Z(q\bar{q})$
   color: '#ffa90e'
   hatch: 
+  
+hbb:
+  label: $H(b\bar{b})$
+  color: '#3f90da'
+  hatch: null
+
 wqq:
   label: $W(q\bar{q})$
-  color: '#3f90da'
+  color: '#92dadd'
   hatch: 
-vv:
-  label: $VV(q\bar{q})$
-  color: '#92dade'
-  hatch: 
-  
+vlep:
+  label: $V(\ell\bar{\ell})$
+  color: '#717581'
+  hatch: null
+  contains:
+  - dy
+  - wlnu
+dy:
+  label: dy
+  color: '#92dadd'
+  hatch: null
+wlnu:
+  label: wlnu
+  color: '#a96b59'
+  hatch: null
 top:
   label: Top
   color: '#e76300'
@@ -81,32 +88,4 @@ st:
   color: '#e76300'
   hatch: null
 
-vlep:
-  label: $V(\ell\bar{\ell})$
-  color: '#717581'
-  hatch: null
-  contains:
-  - dy
-  - wlnu
-dy:
-  label: dy
-  color: '#92dadd'
-  hatch: null
-wlnu:
-  label: wlnu
-  color: '#a96b59'
-  hatch: null
 
-  
-hbb:
-  label: $H(b\bar{b})$
-  color: '#832db6'
-  hatch: null
-b220:
-  label: $Z'_{220}(b\bar{b})$
-  color: '#bd1f01'
-  hatch: \\\\\\
-m220:
-  label: $Z'_{220}(q\bar{q})$
-  color: '#ffa90e'
-  hatch: \\\\\\\
