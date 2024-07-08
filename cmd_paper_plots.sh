@@ -1,4 +1,4 @@
-combine_postfits -i fitDiagnosticsTest.root --data --unblind --fit fit_s --style styJeff.yml \
+combine_postfits -i fitDiagnosticsTest.root --data --unblind --fit fit_s --style style.yml \
 --rmap b220:r,m220:r --sigs b220,m220 --project-signals 5,5 --onto qcd --chi2 False \
 --cats 'fail:ptbin*fail*;bb:ptbin*passTbvlpassL*;qq:ptbin*passTbvlfailL*'    \
 --bkgs  'hbb,zbb,zqq,vv,wqq,top,vlep' --xlabel 'Jet $m_{SD}$' --ylabel 'Events / 5 GeV' \
