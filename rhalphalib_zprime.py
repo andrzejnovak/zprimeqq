@@ -739,35 +739,34 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
 hist_files = {
     #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624.root",
+    "2016APV" : "template_files/templates_2016APV.root",
     #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624.root",
+    "2016" : "template_files/templates_2016.root",
     #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624.root",
+    "2017" : "template_files/templates_2017.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624.root",
-    "2018" : "TEMPLATES__0624.root",
+    "2018" : "template_files/templates_2018.root",
     }
 
 hist_signal_files = {
     #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624_interpolated_.root",
+    "2016APV" : "template_files/templates_signal_2016APV.root",
     #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624_interpolated_.root",
+    "2016" : "template_files/templates_signal_2016.root",
     #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624_interpolated_.root",
+    "2017" : "template_files/templates_signal_2017.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605_interpolated_sigtemplfix.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624_interpolated_.root",
-    "2018" : "TEMPLATES__0624_interpolated_.root",
-
+    "2018" : "template_files/templates_signal_2018.root",
     }
 
 hist_mucr_files = {
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
+    "2016APV" : "template_files/templates_mucr_2016APV.root",
+    "2016" : "template_files/templates_mucr_2016.root",
+    "2017" : "template_files/templates_mucr_2017.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
-    "2018" : "TEMPLATES_30May24.root",
+    "2018" : "template_files/templates_mucr_2018.root",
 
     }
 root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
@@ -1126,7 +1125,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 ["pt", "rho"],
                 basis="Bernstein",
                 init_params=_initsMC,
-                limits=(-50, 50),
+                limits=(0, 50),
                 coefficient_transform=None,
             )
             tf_MCtempls.append(tf_MCtempl)
@@ -1135,20 +1134,27 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 failCh = qcdmodel[f"ptbin{ptbin}fail"]
                 passCh = qcdmodel[f"ptbin{ptbin}pass"]
                 failObs = failCh.getObservation()[0]
-                qcdparams = np.array(
+                if True:
+                    qcdparams = np.array(
                     [
                         rl.IndependentParameter(f"qcdparam{i}_ptbin{ptbin}_msdbin{mbin}".format(i=i,ptbin=ptbin,mbin=mbin,), 0)
                         for mbin in range(msd.nbins)
                     ]
-                )
-                sigmascale = 10.0
-                scaledparams = (
-                    failObs
-                    * (1 + sigmascale / np.maximum(1.0, np.sqrt(failObs))) ** qcdparams
-                )
-                fail_qcd = rl.ParametericSample(
+                    )
+                    sigmascale = 10.0
+                    scaledparams = (
+                        failObs
+                        * (1 + 1.0 / np.maximum(1.0, np.sqrt(failObs))) ** (qcdparams * sigmascale)
+                    )
+                    fail_qcd = rl.ParametericSample(
                     f"ptbin{ptbin}fail_qcd", rl.Sample.BACKGROUND, msd, scaledparams
-                )
+                    )
+                else:
+                    qcdparams = np.array([rl.IndependentParameter(f"qcdparam{i}_ptbin{ptbin}_msdbin{mbin}".format(i=i,ptbin=ptbin,mbin=mbin,), N, lo=0, hi=2 * N) 
+                                          for mbin, N in enumerate(failObs)])
+                    scaledparams = qcdparams
+                    fail_qcd = rl.ParametericSample("ptbin%dfail_qcd" % ptbin, rl.Sample.BACKGROUND, msd, scaledparams)
+
                 failCh.addSample(fail_qcd)
                 pass_qcd = rl.TransferFactorSample(
                     f"ptbin{ptbin}pass_qcd",
@@ -1169,13 +1175,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             qcdfit = simpdf.fitTo(
                 obs,
                 ROOT.RooFit.Extended(True),
-                ROOT.RooFit.Offset(True),  # Gets rid of negative value warnings
+                ROOT.RooFit.Offset(False),  # Gets rid of negative value warnings
                 ROOT.RooFit.SumW2Error(True),
                 ROOT.RooFit.Strategy(2),
                 ROOT.RooFit.Save(),
                 ROOT.RooFit.Minimizer("Minuit2", "migrad"),
                 ROOT.RooFit.Verbose(0),
-                ROOT.RooFit.PrintLevel(-1),
+                ROOT.RooFit.PrintLevel(1),
                 
                 
             )
@@ -1191,17 +1197,17 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             
         # Show res
         for model, fit_result, tf_MCtempl in zip(qcdmodels, MCTFs, tf_MCtempls):
-            if not (fit_result.status() == 0 or qcdfit.status() == 1):
-                raise RuntimeError("Could not fit qcd")
             log.info(f"MCTF - {model.name} fit status: {fit_result.status()}")
             _values = [par.value for par in tf_MCtempl.parameters.flatten()]
             _names = [par.name for par in tf_MCtempl.parameters.flatten()]
             for name, value in zip(_names, _values):
                 log.debug(f"{name} = {value:.3f}")
                 
+            # if not (fit_result.status() == 0 or qcdfit.status() == 1):
+            #     raise RuntimeError("Could not fit qcd")
             if "pytest" not in sys.modules:  #idk
                 qcdfit_ws.writeToFile(os.path.join(str(tmpdir), f"testModel_{model.name}.root"))
-
+        sys.exit()
 
         # plot_mctf(tf_MCtempl, msdbins, "all")
         # Decorrelate

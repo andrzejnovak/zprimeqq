@@ -109,7 +109,7 @@ elif args.r_q:
     overall_cmd += " --redefineSignalPOIs r_q -d model_combined.root -n r_q "
 
 if args.make:
-    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--pseudo' if 'scale_full_lumi' in templates[args.year] else ''} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} {'--decorr_scale_pt' if args.decorr_scale_pt else ''} --collapse {'--mask_outlier' if args.mask_outlier else ''} --shift_sf_err {args.shift_sf_err}" #-vv"
+    cmd = f"python3 rhalphalib_zprime.py --opath results/limits/{args.postfix} --tagger pnmd2prong --sigmass {args.sigmass} --muonCR --MCTF --tworeg --year {args.year} --do_systematics {tf_orders[args.year]} {'--ftest --lowbvl' if args.lowbvl else ''} {'--ftest --highbvl' if args.highbvl else ''} {'--decorr_scale_cat' if args.decorr_scale_cat else ''} {'--decorr_scale_pt' if args.decorr_scale_pt else ''} --collapse {'--mask_outlier' if args.mask_outlier else ''} --shift_sf_err {args.shift_sf_err}" #-vv"
     commands.append(cmd)
 
 #print(f"cd {OPATH}")
