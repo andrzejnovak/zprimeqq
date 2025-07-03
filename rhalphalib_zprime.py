@@ -409,6 +409,10 @@ def smass(sName):
         _mass = float(sName.split("zpqq")[1])
     elif sName in ["zpbb"+str(s) for s in range(40,400,5)]:
         _mass = float(sName.split("zpbb")[1])
+    elif sName in ["p"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("p")[1])
+    elif sName in ["pbb"+str(s) for s in range(40,400,5)]:
+        _mass = float(sName.split("pbb")[1])
     elif sName in ["b"+str(s) for s in range(40,400,5)]:
         _mass = float(sName.split("b")[1])
     else:
@@ -545,6 +549,58 @@ short_to_long = {
     "b290": "zpbb290",
     "b295": "zpbb295",
     "b300": "zpbb300",
+    "p50": "pbb50",
+    "p55": "pbb55",
+    "p60": "pbb60",
+    "p65": "pbb65",
+    "p70": "pbb70",
+    "p75": "pbb75",
+    "p80": "pbb80",
+    "p85": "pbb85",
+    "p90": "pbb90",
+    "p95": "pbb95",
+    "p100": "pbb100",
+    "p105": "pbb105",
+    "p110": "pbb110",
+    "p115": "pbb115",
+    "p115": "pbb115",
+    "p120": "pbb120",
+    "p125": "pbb125",
+    "p130": "pbb130",
+    "p135": "pbb135",
+    "p140": "pbb140",
+    "p145": "pbb145",
+    "p150": "pbb150",
+    "p155": "pbb155",
+    "p160": "pbb160",
+    "p165": "pbb165",
+    "p170": "pbb170",
+    "p175": "pbb175",
+    "p180": "pbb180",
+    "p185": "pbb185",
+    "p190": "pbb190",
+    "p195": "pbb195",
+    "p200": "pbb200",
+    "p205": "pbb205",
+    "p210": "pbb210",
+    "p215": "pbb215",
+    "p220": "pbb220",
+    "p225": "pbb225",
+    "p230": "pbb230",
+    "p235": "pbb235",
+    "p240": "pbb240",
+    "p245": "pbb245",
+    "p250": "pbb250",
+    "p255": "pbb255",
+    "p260": "pbb260",
+    "p265": "pbb265",
+    "p270": "pbb270",
+    "p275": "pbb275",
+    "p280": "pbb280",
+    "p285": "pbb285",
+    "p290": "pbb290",
+    "p295": "pbb295",
+    "p300": "pbb300",
 }
 
 sys_types = {
@@ -555,14 +611,14 @@ sys_types = {
     "btagEffStat": "lnN",
     "btagWeight": "lnN",
     "pileup_weight": "lnN",
-    "Z_d2kappa_EW": "shape",
-    "Z_d3kappa_EW": "shape",
-    "W_d2kappa_EW": "shape",
-    "W_d3kappa_EW": "shape",
-    "d1kappa_EW": "shape",
-    "d1K_NLO": "shape",
-    "d2K_NLO": "shape",
-    "d3K_NLO": "shape",
+    "Z_d2kappa_EW": "lnN",
+    "Z_d3kappa_EW": "lnN",
+    "W_d2kappa_EW": "lnN",
+    "W_d3kappa_EW": "lnN",
+    "d1kappa_EW": "lnN",
+    "d1K_NLO": "lnN",
+    "d2K_NLO": "lnN",
+    "d3K_NLO": "lnN",
     "L1Prefiring": "lnN",
     "scalevar_7pt": "lnN",
     "scalevar_3pt": "lnN",
@@ -738,25 +794,24 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
 
 hist_files = {
-    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624.root",
-    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624.root",
-    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624.root",
-    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624.root",
+    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624.root",
+    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624.root",
+    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624.root",
+    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711.root",
 }
 
 hist_signal_files = {
-    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624_interpolated_.root",
-    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624_interpolated_.root",
-    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES_5Jun24_0606_interpolated_sigtemplfix.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624_interpolated_.root",
-    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES_5Jun24_0605_interpolated_sigtemplfix.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624_interpolated_.root",
+    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624_interpolated_.root",
+    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624_interpolated_.root",
+    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624_interpolated_.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
 }
 
 hist_mucr_files = {
@@ -778,10 +833,10 @@ def get_templ(
     nowarn=False,
     year="2017",
     scaledown=False,
+    #scaleup=False,
     fourptbins=False,
     observable=None,
 ):
-
     if muon:
         hist_str = f"CR1_ptbin5_{sample}_{tagger}_{region}"
     else:
@@ -790,7 +845,7 @@ def get_templ(
         hist_str = hist_str + "__" + syst
     if muon:
         hist = root_file_mu[hist_str]
-    elif "zpqq" in sample or "zpbb" in sample:
+    elif "zpqq" in sample or "zpbb" in sample or "pbb" in sample:
         hist = root_file_signals[hist_str]
     else:
         hist = root_file[hist_str] 
@@ -849,19 +904,22 @@ def th1_to_numpy(path, label="msd"):
 
 
 def shape_to_num(
-    region, sName, ptbin, syst_down_up, mask, muon=False, bound=0.5, inflate=False, scaledown=False,
+    region, sName, ptbin, syst_down_up, mask, muon=False, bound=0.5, inflate=False, scaledown=False, 
 ):
     # pprint(sName)
 
-    _nom = get_templ(region, sName, ptbin, tagger, muon=muon,scaledown=scaledown)
+    _nom = get_templ(region, sName, ptbin, tagger, muon=muon,scaledown=scaledown,)#scaleup=scaleup,)
     # _nom = th1_to_numpy(path)
-
+    #print(sName,syst_down_up,"A")
     # if template is very small don't add unc
     if _nom[0] is None:
         return None
     if muon:
         mask = np.ones_like(_nom[0])
+    #print(sName,syst_down_up,"B")
     _nom_rate = np.sum(_nom[0] * mask)
+    #if "zpqq" in sName or "zpbb" in sName:
+    #    _nom_rate /= 2.066
     if _nom_rate < 0.1:
         return 1.0
     # ignore one sided for now
@@ -869,6 +927,7 @@ def shape_to_num(
         None  # get_templ(f, region, sName, ptbin, syst=syst, muon=muon, nowarn=True)
     )
 
+    #print(sName,syst_down_up,"C")
     syst_name_up = syst_down_up[1]
     syst_name_down = syst_down_up[0]
     if "2016" in syst_name_up or "2017" in syst_name_up or "2018" in syst_name_up:
@@ -876,15 +935,16 @@ def shape_to_num(
         syst_name_down = syst_name_down.replace(args.year,era_dict[args.year])
 
     _up = get_templ(
-        region, sName, ptbin, tagger, syst=syst_name_up, muon=muon, nowarn=True, scaledown=scaledown,
+        region, sName, ptbin, tagger, syst=syst_name_up, muon=muon, nowarn=True, scaledown=scaledown, #scaleup=scaleup,
     )
 
     # _up = th1_to_numpy(path)
 
     _down = get_templ(
-        region, sName, ptbin, tagger, syst=syst_name_down, muon=muon, nowarn=True, scaledown=scaledown,
+        region, sName, ptbin, tagger, syst=syst_name_down, muon=muon, nowarn=True, scaledown=scaledown,#scaleup=scaleup,
     )
     # _down = th1_to_numpy(path)
+    #print(sName,syst_down_up,"D")
     if _up is None and _down is None and _one_side is None:
         return None
     else:
@@ -899,13 +959,15 @@ def shape_to_num(
             # pprint("_down_rate",_down_rate)
             _diff = np.abs(_up_rate - _nom_rate) + np.abs(_down_rate - _nom_rate)
             magnitude = _diff / (2.0 * _nom_rate)
-            log.debug(f"sample={sName}, syst={syst_down_up[0]} rate={_down_rate}, syst={syst_down_up[1]} rate={_up_rate}, magnitude={magnitude}")
+            log.debug(f"sample={sName}, syst={syst_down_up[0]} downrate={_down_rate}, syst={syst_down_up[1]} uprate={_up_rate}, magnitude={magnitude}, nomrate={_nom_rate}")
         else:
             raise NotImplementedError
+    #print(sName,syst_down_up,"E")
     if bound is not None:
         magnitude = min(magnitude, bound)
     # inflate uncs while debugging what went wrong
     if inflate:
+        log.warning("Inflating uncs!")
         magnitude *= 10
     # pprint(magnitude)
     return 1.0 + magnitude
@@ -1005,7 +1067,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     else:
         sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
-    print("Systs being considered =", sys_shape_dict.keys())
+    #print("Systs being considered =", sys_shape_dict.keys())
     tqqeffHLSF = rl.IndependentParameter("tqqeffHLSF_{year}".format(year=args.year), 1.0, 0, 10)
     tqqeffSF_highbvl = rl.IndependentParameter("tqqeffSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
     tqqnormSF_highbvl = rl.IndependentParameter("tqqnormSF_highbvl_{year}".format(year=args.year), 1.0, 0, 10)
@@ -1254,10 +1316,11 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     model = rl.Model(f"{sig}_model")
     siggy = sig
     bsiggy = sig.replace("m", "b")
+    psiggy = sig.replace("m", "p")
     if not (args.ftest or args.qcd_ftest):
-        log.info(f"Signals: {siggy}, {bsiggy}")
+        log.info(f"Signals: {siggy}, {bsiggy}, {psiggy}")
         model.t2w_config = ("-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose "
-                        f"--PO 'map=.*/*{siggy}:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}:r_b[1,-5,5]'"
+                f"--PO 'map=.*/*{siggy}:r_q[1,-5,5]'  --PO 'map=.*/*{bsiggy}:r_b[1,-5,5]' --PO 'map=.*/*{psiggy}:r_p[1,-5,5]'"
                         )
     #else:
     #    log.info(f"One signal")
@@ -1328,6 +1391,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     tagger,
                     fourptbins=args.four_pt_bins,
                     scaledown=True if args.ftest else False,
+                    #scaleup=True,
                 )
             #if not (args.ftest or args.qcd_ftest):
             templates[bsiggy] = get_templ(
@@ -1336,6 +1400,15 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     ptbin,
                     tagger,
                     fourptbins=args.four_pt_bins,
+                    #scaleup=True,
+            )
+            templates[psiggy] = get_templ(
+                    region,
+                    short_to_long[psiggy],
+                    ptbin,
+                    tagger,
+                    fourptbins=args.four_pt_bins,
+                    #scaleup=False,
             )
             mask = validbins[ptbin].copy()
             
@@ -1344,7 +1417,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             elif args.ftest or args.h_sensitivity:
                 include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy]
             else:
-                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy, bsiggy]
+                include_samples = ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", "vv", siggy, bsiggy, psiggy]
             
             for sName in include_samples:
                 # some mock expectations
@@ -1361,7 +1434,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 #if args.ftest: #qcd_ftest and ftest here for now
                 #    stype = rl.Sample.SIGNAL if sName in ["zqq"] else rl.Sample.BACKGROUND
                 #else:
-                stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy] else rl.Sample.BACKGROUND
+                stype = rl.Sample.SIGNAL if sName in [siggy, bsiggy, psiggy] else rl.Sample.BACKGROUND
                 sample = rl.TemplateSample(ch.name + "_" + sName, stype, templ, force_positive=True)
 
                 def smorph(templ, sName):
@@ -1417,7 +1490,6 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                     if stype == rl.Sample.SIGNAL : #and not args.ftest:
                         sName = short_to_long[sName]
                     for sys_name in sys_names:
-                        logging.debug(f"  Adding systematic: '{sys_name}'")
                         if (
                             ("NLO" in sys_name) or ("EW" in sys_name)
                         ) and not sName in ["zqq", "wqq", "zbb"]:
@@ -1426,6 +1498,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                             continue
                         if ("W_d" in sys_name) and sName not in ["wqq","wlnu"]:
                             continue
+                        logging.debug(f"  Adding systematic: '{sys_name}'")
                         name_up = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][1]
                         name_down = sys_name_updown[sys_name.replace(era_dict[args.year],"year")][0]
                         if "year" in name_up:
@@ -1440,9 +1513,12 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                                 mask,
                                 bound=None if "scalevar" not in sys_name else 0.25,
                                 inflate=False,
-                                scaledown=True if args.ftest and siggy == sName else False, 
+                                scaledown=True if args.ftest and siggy == sName else False,
+                                #scaleup=False #### CHECK THIS!!! True if (sName in "zpqq" or sName in "zpbb") else False,
                             )
+                            
                             if _sys_ef is None:
+                                log.warning(f"Effect of {sys_name} is None for {sName} in ptbin {ptbin}")
                                 continue
                             
                             sample.setParamEffect(sys_shape_dict[sys_name], _sys_ef)
@@ -1492,6 +1568,9 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 else:
                     sample.setParamEffect(sys_lumi, 1.1)
 
+                if "zpqq" in sName or "zpbb" in sName:
+                    log.warning(f"Scaling sample {sName} by 2.066 for xsec")
+                    sample.scale(2.066)
                 ch.addSample(sample)
 
             if not args.pseudo:
@@ -1568,8 +1647,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
     # ["wqq", "zqq", "zbb", "tt", "wlnu", "dy", "st", "hbb", siggy, bsiggy]
     if args.do_systematics and not args.ftest:
         # Do 2-region SFs
-        indep = rl.IndependentParameter("failscale_{year}".format(year=args.year), 50., 49.9, 50.1)
-        indepW = rl.IndependentParameter("failscaleW_{year}".format(year=args.year), 50.,49.9, 50.1)
+        indep = rl.IndependentParameter("failscale_{year}".format(year=args.year), 1., 0., 100.1)
+        indepW = rl.IndependentParameter("failscaleW_{year}".format(year=args.year), 1.,0., 100.1)
 
         for ptbin in range(npt):
             log.debug(f"Making BB and QQ SFs for {ptbin}. Channels are {model.channels}.")
@@ -1632,7 +1711,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
 
             ### BB MISTAGGING ###
             bb_samples = ["zbb","hbb"]
-            if not args.ftest: bb_samples += [bsiggy]
+            if not args.ftest: bb_samples += [bsiggy,psiggy]
             for sName in bb_samples:
                 for sf, unc in zip([SF[args.year]['BB_SF']], [SF[args.year]['BB_SF_ERR']]):                      
                     sample_pass = ch_pass[f"{sName}"]
@@ -1668,7 +1747,7 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             ch_fail = model[f"ptbin{ptbin}failT"]
             ch_pass_pass = model[f"ptbin{ptbin}passTbvlpassL"]
             ch_pass_fail = model[f"ptbin{ptbin}passTbvlfailL"]
-            qq_samples = ["wqq", "zqq", "zbb", "hbb", "vv", siggy, bsiggy]
+            qq_samples = ["wqq", "zqq", "zbb", "hbb", "vv", siggy, bsiggy, psiggy]
             #if not args.ftest: qq_samples += [bsiggy] 
             for sName in qq_samples:  # consider tt/st
                 log.debug(f"Working on {sName}")
