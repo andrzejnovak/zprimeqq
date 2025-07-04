@@ -16,7 +16,8 @@ import time
 plt.ioff()
 
 parser = argparse.ArgumentParser(description='Rhalphalib setup.')
-parser.add_argument("--postfix", action='store', type=str, required=True, help="special tag for tests.")
+parser.add_argument("--prefix", action='store', type=str, required=True, help="path to input cards.")
+parser.add_argument("--postfix", action='store', type=str, help="special tag for tests.")
 parser.add_argument('--year', dest='year', action='store',choices=["2016","2016APV","2017","2018","combination"],type=str,help='year')
 parser.add_argument('--make', dest='make', action='store_true',help='Make space')
 parser.add_argument('--build', dest='build', action='store_true',help='Build space')
@@ -26,6 +27,7 @@ parser.add_argument('--significance', dest='significance', action='store_true',h
 parser.add_argument('--collect', dest='collect', action='store_true',help='Collect toys')
 parser.add_argument('--debug', dest='debug', action='store_true',help='Debug')
 parser.add_argument('--r_hat', dest='r_hat', action='store',type=float,help='expected signal strength')
+parser.add_argument('--r_p', dest='r_p', action='store_true',help='Run phi')
 parser.add_argument('--r', dest='r', action='store_true',help='Run r')
 parser.add_argument('--r_q', dest='r_q', action='store_true',help='Run r_q')
 parser.add_argument('--r_b', dest='r_b', action='store_true',help='Run r_b')
@@ -52,39 +54,26 @@ args = parser.parse_args()
 def gauss(x, a, b, c):
     return a * py.exp(-(x - b)**2.0 / (2 * c**2))
 
-cmssw_str='''#!/bin/sh\nulimit -s unlimited\nset -e\ncd /eos/home-j/jekrupa/fitting/CMSSW_14_1_0_pre4/src\nexport SCRAM_ARCH=el9_amd64_gcc12\nsource /cvmfs/cms.cern.ch/cmsset_default.sh\neval `scramv1 runtime -sh`'''
+cmssw_str='''#!/bin/sh\nulimit -s unlimited\nset -e\ncd /eos/home-j/jeffkrup/fitting/CMSSW_14_1_0_pre4/src\nexport SCRAM_ARCH=el9_amd64_gcc12\nsource /cvmfs/cms.cern.ch/cmsset_default.sh\neval `scramv1 runtime -sh`'''
 
 
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
-
+OPATH=args.prefix
 commands = []
 if args.year == "2016APV":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho2,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH += f"results/limits/{args.postfix}/pnmd2prong/ipt2,0_irho2,0/m{args.sigmass}/m{args.sigmass}_model/"
 if args.year == "2016":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,2_irho2,2/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH += f"results/limits/{args.postfix}/pnmd2prong/ipt2,2_irho2,2/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2017":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt2,1_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH += f"results/limits/{args.postfix}/pnmd2prong/ipt2,1_irho3,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "2018":
-    OPATH = f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH += f"results/limits/{args.postfix}/pnmd2prong/ipt1,0_irho1,0/m{args.sigmass}/m{args.sigmass}_model/"
 elif args.year == "combination":
-    OPATH = f"results/limits/combination/{args.postfix}/m{args.sigmass}/m{args.sigmass}_model/"
+    OPATH += f"results/limits/combination/{args.postfix}/m{args.sigmass}/m{args.sigmass}_model/"
     
 OPATH=os.path.abspath(OPATH)
 
-templates = {
-    "2016APV": "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016APV-SR/results/TEMPLATES.root",
-    "2016"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2016-SR/results/TEMPLATES.root",
-    "2017"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/7May24-2017-SR/results/TEMPLATES.root",
-    "2018"   : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/24Apr24-2018-SR/results/TEMPLATES.root",
-}
-
-templates_mu = {
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
-    "2016"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
-    "2017"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
-    "2018"    : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
-}
 
 tf_orders = {
     "2016APV" : " --ipt 2,0 --irho 2,0 --iptMC 0,2 --irhoMC 1,3 ",
@@ -94,7 +83,10 @@ tf_orders = {
 }
 
 if args.run:
-    taskname="limit_"+str(args.sigmass)+"_"+args.postfix
+    if args.r:
+        taskname="limit_zpr_"+str(args.sigmass)+"_"+args.postfix
+    elif args.r_p:
+        taskname="limit_phi_"+str(args.sigmass)+"_"+args.postfix
 if args.build:
     taskname="build_"+str(args.sigmass)+"_"+args.postfix
 if args.r_b:
@@ -108,7 +100,9 @@ if args.frequentist:
     overall_cmd += " -t -1 --toysFrequentist " 
 
 if args.r:
-    overall_cmd += " --redefineSignalPOIs r -d inclusive_workspace.root "
+    overall_cmd += " --redefineSignalPOIs r --setParameters r_p=0 --freezeParameters r_p -d model_combined.root -n r "
+elif args.r_p:
+    overall_cmd += " --redefineSignalPOIs r_p --setParameters r --freezeParameters r_p -d model_combined.root -n r_p "
 elif args.r_b:
     overall_cmd += " --redefineSignalPOIs r_b --setParameters r_q=0,r_b=0 --freezeParameters r_q -d model_combined.root -n r_b "
 elif args.r_q:
@@ -129,7 +123,9 @@ if args.build:
     if not args.year == "combination":
         cmd = """ echo "bash {opath}/build.sh" >> {opath}/{taskname}.sh """.format(opath=OPATH,taskname=taskname)
         commands.append(cmd)
-        cmd = """ echo "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO \'map=.*/*{sigmass}:r[1,-5,5]\' {opath}/model_combined.txt -o {opath}/inclusive_workspace.root " >> {opath}/{taskname}.sh """.format(sigmass=args.sigmass, opath=OPATH,taskname=taskname)
+        #cmd = """ echo "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO \'map=.*/*{sigmass}:r[1,-5,5]\' {opath}/model_combined.txt -o {opath}/inclusive_workspace.root " >> {opath}/{taskname}.sh """.format(sigmass=args.sigmass, opath=OPATH,taskname=taskname)
+        #commands.append(cmd)
+        cmd = """ echo "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO \'map=.*/m{sigmass}:r[1,-5,5]\' --PO \'map=.*/b{sigmass}:r[1,-5,5]\' --PO \'map=.*/p{sigmass}:r_p[1,-5,5]\' {opath}/model_combined.txt -o {opath}/inclusive_workspace.root " >> {opath}/{taskname}.sh """.format(sigmass=args.sigmass, opath=OPATH,taskname=taskname)
         commands.append(cmd)
     else:
         cmd = "cat {opath}/build.sh >> {opath}/{taskname}.sh".format(opath=OPATH,taskname=taskname)
@@ -155,7 +151,7 @@ if args.run:
     #cmd = f"cd {OPATH}"#results/bias_tests/{args.opath}/pnmd2prong_0p01/ipt0_irho0/m{args.sigmass}/m{args.sigmass}_model/"
     #commands.append(cmd)
     #os.chdir(OPATH)
-    cmd = """ echo "combineTool.py -M AsymptoticLimits --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 """.format(opath=OPATH)
+    cmd = """ echo "combineTool.py -M AsymptoticLimits --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 """.format(opath=OPATH)
     cmd += overall_cmd
     if args.condor:
         cmd += condor_str
@@ -181,7 +177,7 @@ lumi={
   "2016" : 16.81,
   "2017" : 41.5,
   "2018" : 59.72,
-  "combination" : "137.6",
+  "combination" : "138",
 }
 
 year = args.year
@@ -190,10 +186,12 @@ if year == "combination":
     year = "Run 2"
 if args.plot:
     #usage: plotLims.py [-h] --ipath IPATH [--observed] [--gq] [--asimov] [--lumi LUMI] [--year YEAR] [--rb]
-    cmd = "python3 plotLims.py --ipath {ipath} {observed} {xsec} {gq} --year {year} --lumi {lumi} {rb} {asimov} {decorr}".format(
+    cmd = "python3 plotLims.py --ipath {ipath} {r} {observed} {xsec} {gq} {rp} --year {year} --lumi {lumi} {rb} {asimov} {decorr}".format(
         ipath="/".join(OPATH.split("/")[:-2]),
         year=args.year,lumi=lumi[args.year],
+        r="--r" if args.r else "",
         rb="--rb" if args.r_b else "",
+        rp="--rp" if args.r_p else "",
         asimov="--asimov" if args.asimov else "", 
         observed="--observed" if not args.asimov else "",
         xsec="--xsec" if args.xsec else "", 

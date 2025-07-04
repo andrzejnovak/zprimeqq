@@ -818,8 +818,10 @@ hist_mucr_files = {
     "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
     "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
     "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
-}
+    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
+    "2018" : "TEMPLATES_30May24.root",
+
+    }
 root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
 root_file_mu = uproot.open(hist_mucr_files[args.year])
 root_file = uproot.open(hist_files[args.year])
@@ -1233,6 +1235,8 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                 ROOT.RooFit.Minimizer("Minuit2", "migrad"),
                 ROOT.RooFit.Verbose(0),
                 ROOT.RooFit.PrintLevel(-1),
+                
+                
             )
             qcdfit_ws.add(qcdfit)
             MCTFs.append(qcdfit)
