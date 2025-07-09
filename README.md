@@ -23,24 +23,20 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
     ```
     git -c advice.detachedHead=false clone --depth 1 --branch v9.2.1 https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
     ```
-- Download template files (optional - if you need them locally)
+- Apply the pixi patch to the Makefile of combine (need to link to the dependencies in the pixi env)
     ```
-    bash setup/download_files.sh
-    ```
-- Apply the pixi patch to the Makefile
-    ```
-    bash setup/apply_pixi_patch.sh
+    pixi run combine-patch
     ```
 - Build it 
     ```
-    pixi run build-combine
+    pixi run combine-build
     ```
 - Link combine and test it 
     ```
     bash setup/pixi-link-combine.sh HiggsAnalysis/CombinedLimit/
     combine
     ```
-- You should see
+- You should see:
     ```
     >>> combine
 
@@ -57,6 +53,10 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
 - Finally verify path is correct
     ```
     which combine
+    ```
+- Install `rhalphabet`
+    ```
+    python -m pip install git+https://github.com/nsmith-/rhalphalib.git@v0.3.0
     ```
 
 

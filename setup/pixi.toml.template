@@ -11,11 +11,10 @@ combine-clean = "cd HiggsAnalysis/CombinedLimit && make clean"
 
 [dependencies]
 python = "3.8.*"
-pip = "*"
-root = "6.22.*"
 setuptools = "*"
 wheel = "*"
 pandas = "*"
+root = "6.22.*"
 gsl = "*"
 tbb = "*"
 vdt = "*"
@@ -34,4 +33,4 @@ vector = "*"
 
 # Pixi environment configuration
 [activation]
-env = { PIXI_PREFIX = "$CONDA_PREFIX", PATH = "/home/novak/work/zprimeqq/HiggsAnalysis/CombinedLimit/build/bin:$PATH", LD_LIBRARY_PATH = "/home/novak/work/zprimeqq/HiggsAnalysis/CombinedLimit/build/lib:$LD_LIBRARY_PATH", PYTHONPATH = "/home/novak/work/zprimeqq/HiggsAnalysis/CombinedLimit/build/lib/python:$PYTHONPATH" }
+env = { PIXI_PREFIX = "$CONDA_PREFIX" }

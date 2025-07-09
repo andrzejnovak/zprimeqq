@@ -1,0 +1,12 @@
+--- a/Makefile
++++ b/Makefile
+@@ -36,6 +36,9 @@ LIBS = $(ROOTLIBS) -lgsl -lRooFit -lRooFitCore -lRooStats -lMinuit -lMathMore -l
+ ifeq ($(CONDA), 1)
+ CCFLAGS += -I${CONDA_PREFIX}/include/boost -I ${CONDA_PREFIX}/include/vdt -I ${CONDA_PREFIX}/include/gsl -I ${CONDA_PREFIX}/include/eigen3 
+ LIBS += -L${CONDA_PREFIX}/lib 
++else ifeq ($(PIXI), 1)
++CCFLAGS += -I${PIXI_PREFIX}/include/boost -I ${PIXI_PREFIX}/include/vdt -I ${PIXI_PREFIX}/include/gsl -I ${PIXI_PREFIX}/include/eigen3 
++LIBS += -L${PIXI_PREFIX}/lib 
+ else ifeq ($(LCG), 1)
+ # for some reason, Eigen headers are nested in LCG
+ CCFLAGS += -I ${CPLUS_INCLUDE_PATH}/eigen3
