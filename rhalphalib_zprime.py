@@ -133,6 +133,9 @@ parser.add_argument(
     "--decorr_scale_pt", action="store_true", help="Decorrelate scale by pt bin."
 )
 parser.add_argument(
+    "--decorr_scale_wz", action="store_true", help="Decorrelate scale W from Z+signals."
+)
+parser.add_argument(
     "--decorr_scale_cat", action="store_true", help="Decorrelate scale highbvl and lowbvl."
 )
 parser.add_argument(
@@ -798,29 +801,27 @@ hist_files = {
     #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624.root",
     #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624.root",
     #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711.root",
+    "2016APV" : "./templates/TEMPLATES_v0_0711_2016APV.root",
+    "2016" : "./templates/TEMPLATES_v0_0711_2016.root",
+    "2017" : "./templates/TEMPLATES_v0_0711_2017.root",
+    "2018" : "./templates/TEMPLATES_v0_0711_2018.root",
 }
 
 hist_signal_files = {
     #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624_interpolated_.root",
     #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624_interpolated_.root",
     #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624_interpolated_.root",
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711_interpolated_v0.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
-    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2016APV" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2016APV.root",
+    "2016" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2016.root",
+    "2017" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2017.root",
+    "2018" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2018.root",
 }
 
 hist_mucr_files = {
-    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
-    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
-    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
-    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
-    "2018" : "TEMPLATES_30May24.root",
-
+    "2016APV" : "./templates/TEMPLATES_30May24_2016APV_mucr.root",
+    "2016" : "./templates/TEMPLATES_30May24_2016_mucr.root",
+    "2017" : "./templates/TEMPLATES_30May24_2017_mucr.root",
+    "2018" : "./templates/TEMPLATES_30May24_2018_mucr.root",
     }
 root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
 root_file_mu = uproot.open(hist_mucr_files[args.year])
@@ -1066,6 +1067,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
             sys_shape_dict[f"CMS_scale_{args.year}_ptbin{iptbin}"] = rl.NuisanceParameter(
                 f"CMS_scale_{args.year}_ptbin{iptbin}", 'shape'
             )
+    elif args.decorr_scale_wz:
+        sys_shape_dict[f"CMS_scale_{args.year}_w"] = rl.NuisanceParameter(
+            f"CMS_scale_{args.year}_w", 'shape'
+        )
+        sys_shape_dict[f"CMS_scale_{args.year}_z"] = rl.NuisanceParameter(
+            f"CMS_scale_{args.year}_z", 'shape'
+        )
     else:
         sys_scale = rl.NuisanceParameter('CMS_scale_{}'.format(args.year), 'shape')
     sys_smear = rl.NuisanceParameter('CMS_smear_{}'.format(args.year), 'shape')
@@ -1557,6 +1565,13 @@ def test_rhalphabet(tmpdir, sig, throwPoisson=False):
                         elif args.decorr_scale_pt: 
                             log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_ptbin{ptbin} on sample {sName}.") 
                             sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_ptbin{ptbin}"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                        elif args.decorr_scale_wz: 
+                            if sName in ["wqq"]:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year} on sample {sName}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_w"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
+                            else:
+                                log.debug(f"Setting nuisance parameter CMS_scale_{args.year}_fail on sample {sName}.") 
+                                sample.setParamEffect(sys_shape_dict[f"CMS_scale_{args.year}_z"], deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         else:
                             sample.setParamEffect(sys_scale, deepcopy(_up), deepcopy(_down), scale=1/_extra_scaling)
                         _extra_scaling = 0.4/SF[args.year]['SMEAR_SF_ERR'] ## Because the smear uncertainties vary so much by era, instead of a fixed extra_scaling, use an extra_scaling that pushes things to 40% uncertainty . This should keep the interpolation from touching zero.

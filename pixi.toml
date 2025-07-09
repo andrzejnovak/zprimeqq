@@ -1,0 +1,29 @@
+[workspace]
+channels = ["conda-forge"]
+name = "combine"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+build-combine = "cd HiggsAnalysis/CombinedLimit && make PIXI=1 -j 8"
+clean-combine = "cd HiggsAnalysis/CombinedLimit && make clean"
+
+[dependencies]
+python = "3.8.*"
+pip = "*"
+pandas = "*"
+root = "6.22.*"
+gsl = "*"
+tbb = "*"
+vdt = "*"
+boost = "*"
+boost-cpp = "*"
+pcre = "*"
+eigen = "*"
+numpy = "*"
+matplotlib = "*"
+uproot = "*"
+
+# Pixi environment configuration
+[activation]
+env = { PIXI_PREFIX = "$CONDA_PREFIX" }
