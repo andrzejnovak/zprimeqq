@@ -59,4 +59,32 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
     python -m pip install git+https://github.com/nsmith-/rhalphalib.git@v0.3.0
     ```
 
+## Let's try
 
+```
+COUPLING=-
+POSTFIX=9Jul24_v1
+YEAR=combination
+
+python3 run_limits.py --postfix 11July25 --year 2016APV --r_p --sigmass 50 --prefix newtest --make
+python3 run_limits.py --postfix 11July25 --year 2016 --r_p --sigmass 50 --prefix newtest --make
+python3 run_limits.py --postfix 11July25 --year 2017 --r_p --sigmass 50 --prefix newtest --make
+python3 run_limits.py --postfix 11July25 --year 2018 --r_p --sigmass 50 --prefix newtest --make
+
+
+```
+
+## Using remake.py (Modern Workflow Dispatcher)
+
+```bash
+# Full combined fit workflow
+python remake.py  --mass 75 --year all --make --combine -p 
+python remake.py  --mass 75 --year combined --build -p
+python remake.py  --mass 75 --year combined --fit -p
+
+# Or step by step:
+python remake.py --make --mass 75                    # Generate templates
+python remake.py --combine --year all --mass 75      # Combine all years  
+python remake.py --build --year combined --mass 75   # Build workspace
+python remake.py --fit --year combined --mass 75     # Run fit
+```

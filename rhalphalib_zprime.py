@@ -147,6 +147,9 @@ parser.add_argument(
 parser.add_argument(
     "--shift_sf_err", action="store", default=1., type=float, help="shift SF uncertainty."
 )
+parser.add_argument(
+    "--force", action="store_true", help="Overwrite existing files."
+)
 
 # do_systematics = parser.add_mutually_exclusive_group(required=True)
     # pseudo.add_argument("--data", action="store_false", dest="pseudo")
@@ -2269,10 +2272,13 @@ if __name__ == "__main__":
     for sig in signals:
         opath = f"{startopath}/{sig}/"
         if os.path.exists(opath):
-            q_overwrite = Confirm.ask(f"Path: '{opath}' already exists. Overwrite?")
-            if not q_overwrite:
-                pprint(f"Remove with \nrm -rf {opath}")
-                sys.exit()
+            if not args.force:
+                q_overwrite = Confirm.ask(f"Path: '{opath}' already exists. Overwrite?")
+                if not q_overwrite:
+                    pprint(f"Remove with \nrm -rf {opath}")
+                    sys.exit()
+                else:
+                    os.system(f"rm -rf {opath}")
             else:
                 os.system(f"rm -rf {opath}")
         os.makedirs(opath)
