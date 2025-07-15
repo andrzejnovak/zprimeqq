@@ -1,0 +1,31 @@
+name: combine
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8.*
+  - pip
+  - root=6.22.*
+  - setuptools
+  - wheel
+  - pandas
+  - gsl
+  - tbb
+  - vdt
+  - boost
+  - boost-cpp
+  - boost-histogram
+  - pcre
+  - eigen
+  - numpy
+  - matplotlib
+  - uproot
+  - scipy
+  - coffea
+  - awkward
+  - vector
+  - git
+  - make
+  - gcc_linux-64
+  - gxx_linux-64
+  - patch

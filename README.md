@@ -34,6 +34,7 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
 - Link combine and test it 
     ```
     bash setup/pixi-link-combine.sh HiggsAnalysis/CombinedLimit/
+    pixi shell
     combine
     ```
 - You should see:

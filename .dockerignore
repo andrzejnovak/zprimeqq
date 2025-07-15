@@ -1,0 +1,61 @@
+# Docker ignore file for Z' analysis
+# Ignore large data files and build artifacts
+
+# Results and output directories
+results_*/
+cards/
+HiggsAnalysis/CombinedLimit/build/
+HiggsAnalysis/CombinedLimit/.git/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Data files (add specific patterns as needed)
+*.root
+*.png
+*.pdf
+*.eps
+
+# Log files
+*.log
+*.out
+*.err
+
+# Condor files
+*.sub
+*.jdl
+
+# Git
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*~
+*.bak
+
+# Large template files (comment out if needed)
+# TEMPLATES_*.root
+# templates_*.pkl
+
+# Lock files
+pixi.lock
+conda-lock.yml

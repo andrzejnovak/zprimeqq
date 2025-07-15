@@ -1,0 +1,10 @@
+# pixi environments
+.pixi
+
+# Local pixi configuration (generated from template)
+pixi.toml
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class

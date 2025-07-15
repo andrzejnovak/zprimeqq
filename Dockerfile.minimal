@@ -1,0 +1,26 @@
+# Minimal Docker container based on CERN combine with rhalphalib
+FROM gitlab-registry.cern.ch/cms-cloud/combine-standalone:v9.2.1-slim
+
+# Switch to root to install packages
+USER root
+
+# Install rhalphalib from git (specific version)
+RUN pip install git+https://github.com/nsmith-/rhalphalib.git@v0.3.0
+
+# Create analysis directory and set proper permissions
+RUN mkdir -p /analysis && chown mambauser:mambauser /analysis
+
+# Switch back to mambauser
+USER mambauser
+
+# Set working directory
+WORKDIR /analysis
+
+# Set default command
+CMD ["/bin/bash"]
+
+# Add labels for documentation
+LABEL maintainer="Z' Analysis Team"
+LABEL description="Minimal CERN combine container with rhalphalib"
+LABEL version="1.0"
+LABEL base_image="gitlab-registry.cern.ch/cms-cloud/combine-standalone:v9.2.1-slim"
