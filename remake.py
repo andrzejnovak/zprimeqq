@@ -70,7 +70,7 @@ def main():
                 print(f"Error: Invalid year '{year}'. Valid years: {list(years.keys()) + ['combined']}")
                 return
 
-    wdir = "results_recovery"
+    wdir = "results_recovery_jul17"
     base_cmd = f"python rhalphalib_zprime_redo.py --opath results_recovery --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
     cmd_mass = f" --sigmass {args.mass}"
     

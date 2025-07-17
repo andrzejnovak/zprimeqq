@@ -800,32 +800,26 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
 
 hist_files = {
-    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624.root",
-    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624.root",
-    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624.root",
-    #"2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2018/results/TEMPLATES__0624.root",
-    "2016APV" : "./templates/TEMPLATES_v0_0711_2016APV.root",
-    "2016" : "./templates/TEMPLATES_v0_0711_2016.root",
-    "2017" : "./templates/TEMPLATES_v0_0711_2017.root",
-    "2018" : "./templates/TEMPLATES_v0_0711_2018.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711.root",
 }
 
 hist_signal_files = {
-    #"2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016APV/results/TEMPLATES__0624_interpolated_.root",
-    #"2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2016/results/TEMPLATES__0624_interpolated_.root",
-    #"2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/22Jun24-2017/results/TEMPLATES__0624_interpolated_.root",
-    "2016APV" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2016APV.root",
-    "2016" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2016.root",
-    "2017" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2017.root",
-    "2018" : "./templates/TEMPLATES_v0_0711_interpolated_v0_2018.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016APV-SR-2/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2016-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2017-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/el9/9Jul24-2018-SR/results/TEMPLATES_v0_0711_interpolated_v0.root",
 }
 
 hist_mucr_files = {
-    "2016APV" : "./templates/TEMPLATES_30May24_2016APV_mucr.root",
-    "2016" : "./templates/TEMPLATES_30May24_2016_mucr.root",
-    "2017" : "./templates/TEMPLATES_30May24_2017_mucr.root",
-    "2018" : "./templates/TEMPLATES_30May24_2018_mucr.root",
+    "2016APV" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016APV-CR1/results/TEMPLATES_30May24.root",
+    "2016" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2016-CR1/results/TEMPLATES_30May24.root",
+    "2017" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2017-CR1/results/TEMPLATES_30May24.root",
+    "2018" : "/eos/project/c/contrast/public/cl/www/zprime/bamboo/19Apr24-2018-CR1/results/TEMPLATES_30May24.root",
     }
+
 root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
 root_file_mu = uproot.open(hist_mucr_files[args.year])
 root_file = uproot.open(hist_files[args.year])
