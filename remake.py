@@ -41,6 +41,8 @@ def main():
                        help='Run commands in parallel (default: True)')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Show real-time output from commands')
+    parser.add_argument('--decorr_scale_wz', action='store_true',
+                       help='Add --decorr_scale_wz option to the workspace command')
     
     args = parser.parse_args()
 
@@ -68,16 +70,24 @@ def main():
         for year in selected_years:
             if year not in years and year != "combined":
                 print(f"Error: Invalid year '{year}'. Valid years: {list(years.keys()) + ['combined']}")
-                return
+                return  
 
-    wdir = "results_recovery_jul17"
-    base_cmd = f"python rhalphalib_zprime_redo.py --opath results_recovery --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
+    # Set workspace directory based on decorr_scale_wz option
+    if args.decorr_scale_wz:
+        wdir = "results_recovery_jul17_decorr_scale_wz"
+        base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --decorr_scale_wz --force"
+    else:
+        wdir = "results_recovery_jul17"
+        base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
     cmd_mass = f" --sigmass {args.mass}"
     
     if args.make:
         print(f"Make action for year(s): {args.year}, mass: {args.mass}")
-        print(f"Parallel execution: {'ON' if args.parallel else 'OFF'}")
-        print(f"Verbose output: {'ON' if args.verbose else 'OFF'}")
+        print(f"Parallel execution     : {'ON' if args.parallel else 'OFF'}")
+        print(f"Verbose output         : {'ON' if args.verbose else 'OFF'}")
+        print(f"Decorr scale WZ        : {'ON' if args.decorr_scale_wz else 'OFF'}")
+        print(f"Output directory       : {os.path.abspath(wdir)}")
+        print()
         
         # Prepare commands for execution
         commands = []
@@ -94,8 +104,11 @@ def main():
     
     if args.build:
         print(f"Build action for year(s): {selected_years}, mass: {args.mass}")
-        print(f"Parallel execution: {'ON' if args.parallel else 'OFF'}")
-        print(f"Verbose output: {'ON' if args.verbose else 'OFF'}")
+        print(f"Parallel execution      : {'ON' if args.parallel else 'OFF'}")
+        print(f"Verbose output          : {'ON' if args.verbose else 'OFF'}")
+        print(f"Decorr scale WZ         : {'ON' if args.decorr_scale_wz else 'OFF'}")
+        print(f"Output directory        : {os.path.abspath(wdir)}")
+        print()
         
         # Prepare build commands for execution
         build_commands = []
@@ -144,6 +157,9 @@ def main():
     
     if args.combine:
         print(f"Combine action for year(s): {selected_years}, mass: {args.mass}")
+        print(f"Decorr scale WZ           : {'ON' if args.decorr_scale_wz else 'OFF'}")
+        print(f"Output directory          : {os.path.abspath(wdir)}")
+        print()
         
         # Create combined directory
         combined_dir = f"{wdir}/combined/m{args.mass}/m{args.mass}_model"
@@ -247,15 +263,36 @@ def main():
     fit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r_p --setParameters r_p=0,r_b=0,r_q=0 --freezeParameters r_b,r_q"
     if args.fit:
         print(f"Fit action for year(s): {selected_years}, mass: {args.mass}")
-        print(f"Parallel execution: {'ON' if args.parallel else 'OFF'}")
-        print(f"Verbose output: {'ON' if args.verbose else 'OFF'}")
+        print(f"Parallel execution     : {'ON' if args.parallel else 'OFF'}")
+        print(f"Verbose output         : {'ON' if args.verbose else 'OFF'}")
+        print(f"Decorr scale WZ        : {'ON' if args.decorr_scale_wz else 'OFF'}")
+        print(f"Output directory       : {os.path.abspath(wdir)}")
+        print()
         
         # Prepare fit commands for execution
         fit_commands = []
         for year in selected_years:
             subdir, workspace_file = get_workspace_info(year, wdir, args.mass)
-            fit_cmd = f"cd {subdir} && combine -M FitDiagnostics {fit_cmd_opts} --saveShapes --saveWithUncertainties {workspace_file}"
+            
+            # Create the combine command
+            combine_cmd = f"combine -M FitDiagnostics {fit_cmd_opts} --saveShapes --saveWithUncertainties {workspace_file}"
+            
+            # Save the command to a text file in the workspace directory
+            cmd_file_path = f"{subdir}/fit_command.txt"
+            os.makedirs(subdir, exist_ok=True)  # Ensure directory exists for command file
+            with open(cmd_file_path, 'w') as f:
+                f.write(f"# Fit command for {year}, mass {args.mass}\n")
+                f.write(f"# Generated on {os.popen('date').read().strip()}\n")
+                f.write(f"# Working directory: {subdir}\n\n")
+                f.write(combine_cmd + "\n")
+            
+            # Full command with cd and logging
+            log_file = f"fit_log.txt"  # Use relative path since we're cd'ing into the directory
+            fit_cmd = f"cd {subdir} && {combine_cmd} 2>&1 | tee {log_file}"
             fit_commands.append((year, fit_cmd, args.verbose))
+            
+            print(f"Saved fit command to   : {os.path.abspath(cmd_file_path)}")
+            print(f"Fit log will be saved to: {os.path.abspath(subdir)}/{log_file}")
         
         # Execute fit commands
         fit_results = execute_commands(fit_commands, parallel=args.parallel, use_spinner=True)
@@ -267,8 +304,11 @@ def main():
     
     if args.limit:
         print(f"Limit action for year(s): {selected_years}, mass: {args.mass}")
-        print(f"Parallel execution: {'ON' if args.parallel else 'OFF'}")
-        print(f"Verbose output: {'ON' if args.verbose else 'OFF'}")
+        print(f"Parallel execution      : {'ON' if args.parallel else 'OFF'}")
+        print(f"Verbose output          : {'ON' if args.verbose else 'OFF'}")
+        print(f"Decorr scale WZ         : {'ON' if args.decorr_scale_wz else 'OFF'}")
+        print(f"Output directory        : {os.path.abspath(wdir)}")
+        print()
         
         # Limit-specific command options (can be modified independently from fit)
         limit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r_p --setParameters r_p=0,r_b=0,r_q=0 --freezeParameters r_b,r_q"
@@ -277,8 +317,26 @@ def main():
         limit_commands = []
         for year in selected_years:
             subdir, workspace_file = get_workspace_info(year, wdir, args.mass)
-            limit_cmd = f"cd {subdir} && combine -M AsymptoticLimits {limit_cmd_opts} {workspace_file}"
+            
+            # Create the combine command
+            combine_cmd = f"combine -M AsymptoticLimits {limit_cmd_opts} {workspace_file}"
+            
+            # Save the command to a text file in the workspace directory
+            cmd_file_path = f"{subdir}/limit_command.txt"
+            os.makedirs(subdir, exist_ok=True)  # Ensure directory exists for command file
+            with open(cmd_file_path, 'w') as f:
+                f.write(f"# Limit command for {year}, mass {args.mass}\n")
+                f.write(f"# Generated on {os.popen('date').read().strip()}\n")
+                f.write(f"# Working directory: {subdir}\n\n")
+                f.write(combine_cmd + "\n")
+            
+            # Full command with cd and logging
+            log_file = f"limit_log.txt"  # Use relative path since we're cd'ing into the directory
+            limit_cmd = f"cd {subdir} && {combine_cmd} 2>&1 | tee {log_file}"
             limit_commands.append((year, limit_cmd, args.verbose))
+            
+            print(f"Saved limit command to  : {os.path.abspath(cmd_file_path)}")
+            print(f"Limit log will be saved to: {os.path.abspath(subdir)}/{log_file}")
         
         # Execute limit commands
         limit_results = execute_commands(limit_commands, parallel=args.parallel, use_spinner=True)
@@ -290,8 +348,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-else:
-    # Keep the original loop for backwards compatibility
-    for year in years:
-        cmd = base_cmd + cmd_mass + years[year]
-        print(cmd)

@@ -60,6 +60,17 @@ class Spinner:
 def run_command(cmd_info):
     """Execute a command and return the result"""
     year, cmd, verbose = cmd_info
+    
+    # Extract directory from command if it starts with 'cd'
+    if cmd.strip().startswith('cd '):
+        parts = cmd.split('&&', 1)
+        if len(parts) > 1:
+            cd_part = parts[0].strip()
+            target_dir = cd_part[3:].strip()  # Remove 'cd ' prefix
+            # Ensure directory exists
+            import os
+            os.makedirs(target_dir, exist_ok=True)
+    
     print(f"Starting command for year {year}")
     try:
         if verbose:
@@ -81,6 +92,16 @@ def run_command(cmd_info):
 def run_command_with_spinner(cmd_info):
     """Execute a command with spinner for non-verbose mode"""
     year, cmd, verbose = cmd_info
+    
+    # Extract directory from command if it starts with 'cd'
+    if cmd.strip().startswith('cd '):
+        parts = cmd.split('&&', 1)
+        if len(parts) > 1:
+            cd_part = parts[0].strip()
+            target_dir = cd_part[3:].strip()  # Remove 'cd ' prefix
+            # Ensure directory exists
+            import os
+            os.makedirs(target_dir, exist_ok=True)
     
     if verbose:
         # Run with real-time output, no spinner
