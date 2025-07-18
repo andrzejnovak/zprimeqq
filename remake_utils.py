@@ -8,6 +8,19 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 
 
+def format_elapsed_time(seconds):
+    """Format elapsed time as a human-readable string"""
+    if seconds < 60:
+        return f"{seconds:.1f} seconds"
+    elif seconds < 3600:  # Less than 1 hour
+        mins, secs = divmod(seconds, 60)
+        return f"{int(mins)} minutes, {secs:.1f} seconds"
+    else:  # 1 hour or more
+        hours, remainder = divmod(seconds, 3600)
+        mins, secs = divmod(remainder, 60)
+        return f"{int(hours)} hours, {int(mins)} minutes, {secs:.1f} seconds"
+
+
 class Spinner:
     """Simple spinner for indicating progress with elapsed time"""
     def __init__(self, message="Working"):

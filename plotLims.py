@@ -159,7 +159,7 @@ def get_graphs():
       except:
         print("No mass {}".format(mass))
         pass
-    fig,ax = plt.subplots(figsize=(8,7))
+    fig,ax = plt.subplots(figsize=(8,6))
     hep.cms.label(data=False if args.asimov else True,lumi=int(args.lumi),fontsize=19)
     #ax.fill_between(filled_masses,lo2,hi2,color='gold',label="Expected $\pm 2 \sigma$")
     #ax.fill_between(filled_masses,lo1,hi1,color='limegreen',label="Expected $\pm 1 \sigma$")
