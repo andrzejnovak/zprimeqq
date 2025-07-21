@@ -60,22 +60,7 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
     python -m pip install git+https://github.com/nsmith-/rhalphalib.git@v0.3.0
     ```
 
-## Let's try
-
-```
-COUPLING=-
-POSTFIX=9Jul24_v1
-YEAR=combination
-
-python3 run_limits.py --postfix 11July25 --year 2016APV --r_p --sigmass 50 --prefix newtest --make
-python3 run_limits.py --postfix 11July25 --year 2016 --r_p --sigmass 50 --prefix newtest --make
-python3 run_limits.py --postfix 11July25 --year 2017 --r_p --sigmass 50 --prefix newtest --make
-python3 run_limits.py --postfix 11July25 --year 2018 --r_p --sigmass 50 --prefix newtest --make
-
-
-```
-
-## Using remake.py (Modern Workflow Dispatcher)
+## Using remake.py
 
 ```bash
 # Full combined fit workflow
@@ -88,4 +73,38 @@ python remake.py --make --mass 75                    # Generate templates
 python remake.py --combine --year all --mass 75      # Combine all years  
 python remake.py --build --year combined --mass 75   # Build workspace
 python remake.py --fit --year combined --mass 75     # Run fit
+```
+
+## Repro instructions
+
+- Builds phi fit by default
+```bash
+python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --make 
+python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --combine
+python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p --build
+python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p  --limit
+```
+- For z fit
+#python remake.py  --mass all --year all --build_dir results_recovery_jul17_Z --model_type z -p --make 
+#python remake.py  --mass all --year all --build_dir results_recovery_jul17_Z --model_type z -p --combine
+cp -r results_recovery_jul17 results_recovery_jul17_Z  # make/combine steps are the same
+python remake.py  --mass all --year combined --build_dir results_recovery_jul17_Z --model_type z -p --build
+python remake.py  --mass all --year combined --build_dir results_recovery_jul17_Z --model_type z -p  --limit
+```
+
+- Extract limits
+```
+pixi run python plot_limits.py --table --input results_recovery_jul17 --output plots --mode phi
+pixi run python plot_limits.py --table --input results_recovery_jul17_Z --output plotsZ --mode z
+
+```
+
+
+### Impacts
+```
+combineTool.py -M Impacts -d model_combined.root -m 125  --cminDefaultMinimizerStrategy 0 --X-rtd FITTER_DYN_STEP --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r --setParameters r=0,r_p=0 --freezeParameters r_p --doInitialFit
+combineTool.py -M Impacts -d model_combined.root -m 125 --cminDefaultMinimizerStrategy 0 --X-rtd FITTER_DYN_STEP --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r --setParameters r=0,r_p=0 --freezeParameters r_p --doFits --allPars --X-rtd MINIMIZER_analytic --job-mode interactive --parallel 10 --exclude 'rgx{qcdparams*}'
+combineTool.py -M Impacts -d model_combined.root -m 125 --redefineSignalPOIs r -o impacts.json  --exclude 'rgx{qcdparams*}'
+mkdir plots
+plotImpacts.py -i impacts.json -o plots/impacts
 ```

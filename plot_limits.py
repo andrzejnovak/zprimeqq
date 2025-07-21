@@ -129,7 +129,7 @@ def collect_limits(base_dir, years=['combined'], masses=None):
     
     return results
 
-def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix=""):
+def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix="", output_dir='./plots', mode='phi'):
     """
     Create a limit plot from the collected results.
     
@@ -160,13 +160,25 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     
     for mass in masses:
         data = results[year_to_plot][mass]
-        # Convert r_p limits to coupling limits by taking square root
-        obs_limits.append(np.sqrt(data.get('obs', np.nan)))
-        exp_limits.append(np.sqrt(data.get('exp', np.nan)))
-        exp_m2_limits.append(np.sqrt(data.get('exp_m2', np.nan)))
-        exp_m1_limits.append(np.sqrt(data.get('exp_m1', np.nan)))
-        exp_p1_limits.append(np.sqrt(data.get('exp_p1', np.nan)))
-        exp_p2_limits.append(np.sqrt(data.get('exp_p2', np.nan)))
+        if mode == 'phi':
+            # Convert r_p limits to coupling limits by taking square root
+            obs_limits.append(np.sqrt(data.get('obs', np.nan)))
+            exp_limits.append(np.sqrt(data.get('exp', np.nan)))
+            exp_m2_limits.append(np.sqrt(data.get('exp_m2', np.nan)))
+            exp_m1_limits.append(np.sqrt(data.get('exp_m1', np.nan)))
+            exp_p1_limits.append(np.sqrt(data.get('exp_p1', np.nan)))
+            exp_p2_limits.append(np.sqrt(data.get('exp_p2', np.nan)))
+        elif mode == 'z':
+            # Placeholder: direct value, or customize as needed
+            factor = 1/16. # Adjust as needed for Z-prime
+            obs_limits.append(np.sqrt(factor * data.get('obs', np.nan)))
+            exp_limits.append(np.sqrt(factor * data.get('exp', np.nan)))
+            exp_m2_limits.append(np.sqrt(factor * data.get('exp_m2', np.nan)))
+            exp_m1_limits.append(np.sqrt(factor * data.get('exp_m1', np.nan)))
+            exp_p1_limits.append(np.sqrt(factor * data.get('exp_p1', np.nan)))
+            exp_p2_limits.append(np.sqrt(factor * data.get('exp_p2', np.nan)))
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
     
     # Convert to numpy arrays
     masses = np.array(masses)
@@ -194,36 +206,34 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     # Plot expected and observed limits
     ax.plot(masses, exp_limits, 'k--', linewidth=2, label='Expected')
     ax.plot(masses, obs_limits, 'k-', linewidth=2, label='Observed')
-    axt = ax.twinx()
-    axt.plot(masses, obs_limits/1.5, '-', color='none', linewidth=2)
-    axt.set_ylim(0, 10/1.5)
-    axt.set_ylabel(r'$g_{qA}$')  # Coupling label
-
+       
     def scalar_no_zero(x, pos):
         if x == 0:
             return ""
         return f"{x:g}"
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(scalar_no_zero))
-    axt.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(scalar_no_zero))
+    if mode == 'phi':
+        axt = ax.twinx()
+        axt.plot(masses, obs_limits/1.5, '-', color='none', linewidth=2)
+        axt.set_ylim(0, 10/1.5)
+        axt.set_ylabel(r'$g_{qA}$')  # Coupling label
+        axt.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(scalar_no_zero))
 
     # Styling
-    ax.set_ylim(0,10)
-    ax.set_xlabel('Mass [GeV]')
-    ax.set_ylabel(r'$g_{q\phi}$')
     ax.legend(loc='upper left')
-    ax.set_xlabel("$\phi/\mathrm{A}$ mass [GeV]")
-
-    # Set reasonable y-axis limits for linear scale
-    all_limits = np.concatenate([obs_limits[~np.isnan(obs_limits)], 
-                                exp_limits[~np.isnan(exp_limits)],
-                                exp_m2_limits[~np.isnan(exp_m2_limits)],
-                                exp_m1_limits[~np.isnan(exp_m1_limits)],
-                                exp_p1_limits[~np.isnan(exp_p1_limits)],
-                                exp_p2_limits[~np.isnan(exp_p2_limits)]])
-    mplhep.yscale_legend(ax)
+    if mode == 'phi':
+        ax.set_ylabel(r'$g_{q\phi}$')
+        ax.set_xlabel("$\\phi/\\mathrm{A}$ mass [GeV]")
+        ax.set_ylim(0,10)
+    elif mode == 'z':
+        ax.set_ylabel(r'$g_{q}$')
+        ax.set_xlabel("Z' mass [GeV]")  # Placeholder for Z-prime
+        ax.set_ylim(0,0.2)
+        
+    mplhep.yscale_legend(ax, soft_fail=True)
     # Set x-axis limits to exactly min/max masses (no whitespace)
     if len(masses) > 0:
-        ax.set_xlim(min(masses), max(masses))
+        ax.set_xlim(min(masses), 300)
     # Add CMS label
     mplhep.cms.label(lumi=138, data=True)
     
@@ -235,8 +245,6 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     mean = np.mean(pulls_clean)
     std = np.std(pulls_clean)
     print(f"\nPull mean: {mean:.3f}, std: {std:.3f}")
-    k2, p = stats.normaltest(pulls_clean)
-    print(f"Normality test p-value: {p:.3g} (p>0.05 means consistent with normal)")
     fig2, ax2 = plt.subplots(figsize=(10, 10))
     ax2.hist(pulls_clean, bins=10, alpha=0.7, color='skyblue', edgecolor='k', density=True, 
              label=fr'Pulls ($\mu$: {mean:.2f}, $\sigma$: {std:.2f})')
@@ -244,31 +252,45 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     ax2.plot(x, stats.norm.pdf(x), 'r--', label='Normal(0,1)')
     ax2.set_xlabel('Pull: (Observed - Expected) / 1σ')
     ax2.set_ylabel('Density')
-    ax2.legend(title=f"p-value: {p:.3g}", loc='upper left')
+    if len(pulls_clean) >= 8:
+        k2, p = stats.normaltest(pulls_clean)
+        print(f"Normality test p-value: {p:.3g} (p>0.05 means consistent with normal)")
+        legend_title = f"p-value: {p:.3g}"
+    else:
+        print(f"Normality test skipped (need at least 8 samples, got {len(pulls_clean)})")
+        legend_title = "p-value: N/A"
+    ax2.legend(title=legend_title, loc='upper left')
     mplhep.cms.label(lumi=138, data=True)
     mplhep.yscale_legend(ax2)
 
-    # Save all outputs to ./plots directory
-    output_dir = "./plots"
+    # Save all outputs to output_dir
     os.makedirs(output_dir, exist_ok=True)
     if output_file:
         base_name = os.path.basename(output_file)
         out_path = os.path.join(output_dir, base_name)
+        # Save PNG and PDF for main plot
         fig.savefig(out_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {out_path}")
+        fig.savefig(os.path.splitext(out_path)[0] + ".pdf", bbox_inches='tight')
+        print(f"Plot saved to {out_path} and {os.path.splitext(out_path)[0] + '.pdf'}")
+        # Save PNG and PDF for pull plot
         pull_file = os.path.splitext(base_name)[0] + "_pulls.png"
         pull_path = os.path.join(output_dir, pull_file)
         fig2.savefig(pull_path, dpi=300, bbox_inches='tight')
-        print(f"Pull distribution plot saved to {pull_path}")
+        fig2.savefig(os.path.splitext(pull_path)[0] + ".pdf", bbox_inches='tight')
+        print(f"Pull distribution plot saved to {pull_path} and {os.path.splitext(pull_path)[0] + '.pdf'}")
     else:
         default_file = f"limits_{year_to_plot}.png"
         out_path = os.path.join(output_dir, default_file)
+        # Save PNG and PDF for main plot
         fig.savefig(out_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {out_path}")
+        fig.savefig(os.path.splitext(out_path)[0] + ".pdf", bbox_inches='tight')
+        print(f"Plot saved to {out_path} and {os.path.splitext(out_path)[0] + '.pdf'}")
+        # Save PNG and PDF for pull plot
         pull_file = f"limits_{year_to_plot}_pulls.png"
         pull_path = os.path.join(output_dir, pull_file)
         fig2.savefig(pull_path, dpi=300, bbox_inches='tight')
-        print(f"Pull distribution plot saved to {pull_path}")
+        fig2.savefig(os.path.splitext(pull_path)[0] + ".pdf", bbox_inches='tight')
+        print(f"Pull distribution plot saved to {pull_path} and {os.path.splitext(pull_path)[0] + '.pdf'}")
     plt.close(fig)
     plt.close(fig2)
 
@@ -301,46 +323,43 @@ def print_limit_table(results, year_to_plot='combined'):
 
 def main():
     parser = argparse.ArgumentParser(description='Plot asymptotic limits from combine output')
-    parser.add_argument('--base_dir', type=str, 
+    parser.add_argument('--mode', type=str, choices=['phi', 'z'], default='phi',
+                       help='Plotting mode: phi (default) or z. Use z for Z-prime option (default: phi)')
+    parser.add_argument('--input', type=str, 
                        default='/home/anovak/work/zprimeqq/results_recovery_jul17',
-                       help='Base directory containing results')
+                       help='Top-level input directory structure (default: /home/anovak/work/zprimeqq/results_recovery_jul17)')
     parser.add_argument('--years', type=str, default='combined',
                        help='Comma-separated list of years to process (default: combined)')
     parser.add_argument('--masses', type=str, default=None,
                        help='Comma-separated list of masses (default: auto-detect)')
-    parser.add_argument('--output', type=str, default=None,
-                       help='Output filename for the plot')
+    parser.add_argument('--output', type=str, default='./plots',
+                       help='Directory for output plots (default: ./plots)')
     parser.add_argument('--year_to_plot', type=str, default='combined',
                        help='Which year to plot (default: combined)')
     parser.add_argument('--title_suffix', type=str, default='',
                        help='Additional text to add to plot title')
     parser.add_argument('--table', action='store_true',
                        help='Print a formatted table of limit values')
-    parser.add_argument('--decorr_scale_wz', action='store_true',
-                       help='Use decorr_scale_wz results directory')
+    # Removed --decorr_scale_wz option
     
     args = parser.parse_args()
     
-    # Adjust base directory if using decorr_scale_wz
-    if args.decorr_scale_wz:
-        args.base_dir = args.base_dir.replace('results_recovery_jul17', 'results_recovery_jul17_decorr_scale_wz')
-        if not args.title_suffix:
-            args.title_suffix = '(decorr_scale_wz)'
-    
+    input_path = args.input
+
     # Parse arguments
     years = [year.strip() for year in args.years.split(',')]
-    
+
     if args.masses:
         masses = [int(mass.strip()) for mass in args.masses.split(',')]
     else:
         masses = None
-    
+
     # Collect limit data
-    print(f"Collecting limits from {args.base_dir}")
+    print(f"Collecting limits from {input_path}")
     print(f"Years: {years}")
     print(f"Masses: {masses if masses else 'auto-detect'}")
-    
-    results = collect_limits(args.base_dir, years=years, masses=masses)
+
+    results = collect_limits(input_path, years=years, masses=masses)
     
     # Print summary
     print("\nCollected data summary:")
@@ -357,8 +376,8 @@ def main():
     
     # Create the plot
     if results[args.year_to_plot]:
-        plot_limits(results, output_file=args.output, year_to_plot=args.year_to_plot, 
-                   title_suffix=args.title_suffix)
+        plot_limits(results, output_file=None, year_to_plot=args.year_to_plot, 
+                   title_suffix=args.title_suffix, output_dir=args.output, mode=args.mode)
     else:
         print(f"No data available for plotting year {args.year_to_plot}")
 

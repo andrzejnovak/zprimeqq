@@ -37,7 +37,7 @@ if ! command -v xrdcp &> /dev/null; then
 fi
 
 # Create templates directory if it doesn't exist
-TEMPLATES_DIR="templates_final_local"
+TEMPLATES_DIR="zprimeqq_final_templates"
 if [ ! -d "$TEMPLATES_DIR" ]; then
     print_status "Creating templates directory..."
     mkdir -p "$TEMPLATES_DIR"

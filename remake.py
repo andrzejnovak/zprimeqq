@@ -69,7 +69,11 @@ def main():
                        help='Show real-time output from commands')
     parser.add_argument('--decorr_scale_wz', action='store_true',
                        help='Add --decorr_scale_wz option to the workspace command')
-    
+    parser.add_argument('--model_type', type=str, choices=['z', 'phi'], default='phi',
+                       help="Model type: 'z' or 'phi' (affects POI and workspace mapping, default: phi)")
+    # Add build_dir argument
+    parser.add_argument('--build_dir', type=str, default=None,
+                       help='Directory for build outputs (default: results_recovery_jul17[_decorr_scale_wz])')
     args = parser.parse_args()
 
     # Check if at least one action is specified
@@ -111,13 +115,20 @@ def main():
     
     print(f"Selected masses: {selected_masses}")
 
-    # Set workspace directory based on decorr_scale_wz option
-    if args.decorr_scale_wz:
-        wdir = "results_recovery_jul17_decorr_scale_wz"
-        base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --decorr_scale_wz --force"
+    # Set workspace directory based on build_dir or decorr_scale_wz option
+    if args.build_dir:
+        wdir = args.build_dir
+        if args.decorr_scale_wz:
+            base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --decorr_scale_wz --force"
+        else:
+            base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
     else:
-        wdir = "results_recovery_jul17"
-        base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
+        if args.decorr_scale_wz:
+            wdir = "results_recovery_jul17_decorr_scale_wz"
+            base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --decorr_scale_wz --force"
+        else:
+            wdir = "results_recovery_jul17"
+            base_cmd = f"python rhalphalib_zprime_redo.py --opath {wdir} --tagger pnmd2prong --MCTF --tworeg  --collapse  --shift_sf_err 1.0 --muonCR --do_systematics  --do_systematics --force"
     
     if args.make:
         print(f"Make action for year(s): {args.year}, masses: {selected_masses}")
@@ -144,6 +155,16 @@ def main():
         if not args.verbose or not args.parallel:
             print_execution_summary(results)
     
+    if args.model_type == 'phi':
+        t2w_line = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*m{mass}:r_q[0,-15,15]'  --PO 'map=.*/*b{mass}:r_b[0,-15,15]' --PO 'map=.*/*p{mass}:r_p[0,-15,15]' model_combined.txt"
+        rdf_poi = "--redefineSignalPOIs r_p"
+        set_pois = "--setParameters r_p=0,r_b=0,r_q=0 --freezeParameters r_b,r_q"
+    else:  # 'z prime model
+        t2w_line = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*[mb]{mass}:r[0,-15,15]' --PO 'map=.*/*p{mass}:r_p[0,-15,15]' model_combined.txt"
+        rdf_poi = "--redefineSignalPOIs r"
+        set_pois = "--setParameters r=0,r_p=0 --freezeParameters r_p"
+        # t2w_line = f"text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*m{mass}:r[1,-5,5]'  --PO 'map=.*/*b{mass}:r[1,-5,5]' --PO 'map=.*/*p{mass}:r_p[0,-15,15]' model_combined.txt"
+
     if args.build:
         print(f"Build action for year(s): {selected_years}, masses: {selected_masses}")
         print(f"Parallel execution      : {'ON' if args.parallel else 'OFF'}")
@@ -174,8 +195,8 @@ def main():
                         updated_lines = []
                         for line in lines:
                             if 'text2workspace.py' in line:
-                                # Replace with new parameters
-                                updated_line = f"text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*m{mass}:r_q[0,-15,15]'  --PO 'map=.*/*b{mass}:r_b[0,-15,15]' --PO 'map=.*/*p{mass}:r_p[0,-15,15]' model_combined.txt"
+                                 # Replace with new parameters
+                                updated_line = t2w_line.format(mass=mass)
                                 updated_lines.append(updated_line)
                                 print(f"Updated text2workspace command in {build_script_path}")
                             else:
@@ -297,7 +318,7 @@ def main():
                     f.write("combineCards.py ")
                     f.write(" ".join(combined_cards))
                     f.write(" > model_combined.txt\n")
-                    f.write(f"text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO verbose --PO 'map=.*/*m{mass}:r_q[0,-15,15]'  --PO 'map=.*/*b{mass}:r_b[0,-15,15]' --PO 'map=.*/*p{mass}:r_p[0,-15,15]' model_combined.txt\n")
+                    f.write(f"{t2w_line.format(mass=mass)}\n")
                 
                 # Make the script executable
                 os.chmod(combine_script_path, 0o755)
@@ -309,7 +330,7 @@ def main():
                 print(f"Error creating combined build script for mass {mass}: {e}")
                 continue
     
-    fit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r_p --setParameters r_p=0,r_b=0,r_q=0 --freezeParameters r_b,r_q"
+    fit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 {rdf_poi} {set_pois}"
     if args.fit:
         print(f"Fit action for year(s): {selected_years}, masses: {selected_masses}")
         print(f"Parallel execution     : {'ON' if args.parallel else 'OFF'}")
@@ -363,8 +384,7 @@ def main():
         print()
         
         # Limit-specific command options (can be modified independently from fit)
-        limit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 --redefineSignalPOIs r_p --setParameters r_p=0,r_b=0,r_q=0 --freezeParameters r_b,r_q"
-        
+        limit_cmd_opts = f" --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 {rdf_poi} {set_pois}"
         # Prepare limit commands for execution
         limit_commands = []
         for year in selected_years:

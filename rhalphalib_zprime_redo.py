@@ -800,24 +800,24 @@ def plot_mctf(tf_MCtempl, msdbins, name):
 
 
 hist_files = {
-    "2016APV" : "./templates_final_local/2016APV_hist.root",
-    "2016" : "./templates_final_local/2016_hist.root",
-    "2017" : "./templates_final_local/2017_hist.root",
-    "2018" : "./templates_final_local/2018_hist.root",
+    "2016APV" : "./zprimeqq_final_templates/2016APV_hist.root",
+    "2016" : "./zprimeqq_final_templates/2016_hist.root",
+    "2017" : "./zprimeqq_final_templates/2017_hist.root",
+    "2018" : "./zprimeqq_final_templates/2018_hist.root",
 }
 
 hist_signal_files = {
-    "2016APV" : "./templates_final_local/2016APV_signal.root",
-    "2016" : "./templates_final_local/2016_signal.root",
-    "2017" : "./templates_final_local/2017_signal.root",
-    "2018" : "./templates_final_local/2018_signal.root",
+    "2016APV" : "./zprimeqq_final_templates/2016APV_signal.root",
+    "2016" : "./zprimeqq_final_templates/2016_signal.root",
+    "2017" : "./zprimeqq_final_templates/2017_signal.root",
+    "2018" : "./zprimeqq_final_templates/2018_signal.root",
 }
 
 hist_mucr_files = {
-    "2016APV" : "./templates_final_local/2016APV_mucr.root",
-    "2016" : "./templates_final_local/2016_mucr.root",
-    "2017" : "./templates_final_local/2017_mucr.root",
-    "2018" : "./templates_final_local/2018_mucr.root",
+    "2016APV" : "./zprimeqq_final_templates/2016APV_mucr.root",
+    "2016" : "./zprimeqq_final_templates/2016_mucr.root",
+    "2017" : "./zprimeqq_final_templates/2017_mucr.root",
+    "2018" : "./zprimeqq_final_templates/2018_mucr.root",
     }
 root_file_signals = uproot.open(hist_signal_files[args.year]) #uproot.open(args.root_file.replace(".root","_interpolated.root"))
 root_file_mu = uproot.open(hist_mucr_files[args.year])
