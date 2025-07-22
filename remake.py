@@ -330,7 +330,7 @@ def main():
                 print(f"Error creating combined build script for mass {mass}: {e}")
                 continue
     
-    fit_cmd_opts = " --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 {rdf_poi} {set_pois}"
+    fit_cmd_opts = f" --cminDefaultMinimizerStrategy 0 --cminFallbackAlgo Minuit2,0:0.4 {rdf_poi} {set_pois}"
     if args.fit:
         print(f"Fit action for year(s): {selected_years}, masses: {selected_masses}")
         print(f"Parallel execution     : {'ON' if args.parallel else 'OFF'}")

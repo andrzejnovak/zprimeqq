@@ -63,6 +63,7 @@ combine_postfits -i fitDiagnosticsTest.root --data --style style.yml --sigs b150
 ## Using remake.py
 
 ```bash
+pixi shell
 # Full combined fit workflow
 python remake.py  --mass 75 --year all --make --combine -p 
 python remake.py  --mass 75 --year combined --build -p
@@ -79,12 +80,16 @@ python remake.py --fit --year combined --mass 75     # Run fit
 
 - Builds phi fit by default
 ```bash
+pixi shell
 python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --make 
 python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --combine
 python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p --build
 python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p  --limit
 ```
+
 - For z fit
+```bash
+pixi shell
 #python remake.py  --mass all --year all --build_dir results_recovery_jul17_Z --model_type z -p --make 
 #python remake.py  --mass all --year all --build_dir results_recovery_jul17_Z --model_type z -p --combine
 cp -r results_recovery_jul17 results_recovery_jul17_Z  # make/combine steps are the same
@@ -96,7 +101,6 @@ python remake.py  --mass all --year combined --build_dir results_recovery_jul17_
 ```
 pixi run python plot_limits.py --table --input results_recovery_jul17 --output plots --mode phi
 pixi run python plot_limits.py --table --input results_recovery_jul17_Z --output plotsZ --mode z
-
 ```
 
 
