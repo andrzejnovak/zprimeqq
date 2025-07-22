@@ -84,8 +84,9 @@ pixi shell
 python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --make 
 python remake.py  --mass all --year all --build_dir results_recovery_jul17 -p --combine
 python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p --build
-python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p  --limit
+python remake.py  --mass all --year combined --build_dir results_recovery_jul17 -p  --limit 
 ```
+
 
 - For z fit
 ```bash
