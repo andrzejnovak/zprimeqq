@@ -100,9 +100,9 @@ python remake.py  --mass all --year combined --build_dir results_recovery_jul17_
 
 - Extract limits
 ```
-pixi run python plot_limits.py --table --input results_recovery_jul17 --output plots --mode phi
-pixi run python plot_limits.py --table --input results_recovery_jul17_Z --output plotsZ --mode z
-```
+pixi run python plot_limits.py --input  workspaces/results_recovery_jul17 --output plots --mode phi --json plots/limit_phi.json --table
+pixi run python plot_limits.py --input  workspaces/results_recovery_jul17_Z --output plotsZ --mode z --json plotsZ/limit_z.json --table
+``` 
 
 
 ### Impacts

@@ -161,6 +161,7 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     for mass in masses:
         data = results[year_to_plot][mass]
         if mode == 'phi':
+            factor = 1.
             # Convert r_p limits to coupling limits by taking square root
             obs_limits.append(np.sqrt(data.get('obs', np.nan)))
             exp_limits.append(np.sqrt(data.get('exp', np.nan)))
@@ -294,7 +295,7 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     plt.close(fig)
     plt.close(fig2)
 
-def print_limit_table(results, year_to_plot='combined'):
+def print_limit_table(results, year_to_plot='combined', mode='phi'):
     """
     Print a formatted table of limit values.
     """
@@ -308,18 +309,50 @@ def print_limit_table(results, year_to_plot='combined'):
     print("="*80)
     print(f"{'Mass':<8} {'Observed':<12} {'Expected':<12} {'Exp-2σ':<12} {'Exp-1σ':<12} {'Exp+1σ':<12} {'Exp+2σ':<12}")
     print("-"*80)
+    factor = 1. if mode == 'phi' else 1/16.  # Adjust factor for Z-prime if needed
     
     for mass in masses:
         data = results[year_to_plot][mass]
         # Convert r_p limits to coupling limits by taking square root
-        obs = np.sqrt(data.get('obs', np.nan))
-        exp = np.sqrt(data.get('exp', np.nan))
-        exp_m2 = np.sqrt(data.get('exp_m2', np.nan))
-        exp_m1 = np.sqrt(data.get('exp_m1', np.nan))
-        exp_p1 = np.sqrt(data.get('exp_p1', np.nan))
-        exp_p2 = np.sqrt(data.get('exp_p2', np.nan))
+        obs = np.sqrt(factor * data.get('obs', np.nan))
+        exp = np.sqrt(factor * data.get('exp', np.nan))
+        exp_m2 = np.sqrt(factor * data.get('exp_m2', np.nan))
+        exp_m1 = np.sqrt(factor * data.get('exp_m1', np.nan))
+        exp_p1 = np.sqrt(factor *data.get('exp_p1', np.nan))
+        exp_p2 = np.sqrt(factor *data.get('exp_p2', np.nan))
         
         print(f"{mass:<8} {obs:<12.4f} {exp:<12.4f} {exp_m2:<12.4f} {exp_m1:<12.4f} {exp_p1:<12.4f} {exp_p2:<12.4f}")
+
+
+# Print the limit values as a JSON object
+def print_limit_json(results, year_to_plot='combined', filename=None, mode='phi'):
+    """
+    Print the limit values as a JSON object, or save to a file if filename is given.
+    """
+    import json
+    if year_to_plot not in results or not results[year_to_plot]:
+        out = {"error": f"No data found for year {year_to_plot}"}
+    else:
+        masses = sorted(results[year_to_plot].keys())
+        out = {}
+        factor = 1. if mode == 'phi' else 1/16.  # Adjust factor for Z-prime if needed
+        for mass in masses:
+            data = results[year_to_plot][mass]
+            out[mass] = {
+                "Observed": float(np.sqrt(factor * data.get('obs', np.nan))),
+                "Expected": float(np.sqrt(factor * data.get('exp', np.nan))),
+                "Exp-2sigma": float(np.sqrt(factor * data.get('exp_m2', np.nan))),
+                "Exp-1sigma": float(np.sqrt(factor * data.get('exp_m1', np.nan))),
+                "Exp+1sigma": float(np.sqrt(factor * data.get('exp_p1', np.nan))),
+                "Exp+2sigma": float(np.sqrt(factor * data.get('exp_p2', np.nan)))
+            }
+    json_str = json.dumps(out, indent=2)
+    if filename and filename is not True:
+        with open(filename, 'w') as f:
+            f.write(json_str + '\n')
+        print(f"JSON written to {filename}")
+    else:
+        print(json_str)
 
 def main():
     parser = argparse.ArgumentParser(description='Plot asymptotic limits from combine output')
@@ -340,6 +373,8 @@ def main():
                        help='Additional text to add to plot title')
     parser.add_argument('--table', action='store_true',
                        help='Print a formatted table of limit values')
+    parser.add_argument('--json', nargs='?', const=True, default=False,
+                       help='Print a json of limit values, or save to file if a filename is given')
     # Removed --decorr_scale_wz option
     
     args = parser.parse_args()
@@ -372,7 +407,13 @@ def main():
     
     # Print table if requested
     if args.table:
-        print_limit_table(results, year_to_plot=args.year_to_plot)
+        print_limit_table(results, year_to_plot=args.year_to_plot, mode=args.mode)
+
+    if args.json:
+        if isinstance(args.json, str):
+            print_limit_json(results, year_to_plot=args.year_to_plot, filename=args.json, mode=args.mode)
+        else:
+            print_limit_json(results, year_to_plot=args.year_to_plot, mode=args.mode)
     
     # Create the plot
     if results[args.year_to_plot]:
