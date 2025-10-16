@@ -199,9 +199,9 @@ def plot_limits(results, output_file=None, year_to_plot='combined', title_suffix
     # Plot expected limits with uncertainty bands using specified colors
     al=1
     ax.fill_between(masses, exp_m2_limits, exp_p2_limits, 
-                     alpha=al, color='#85D1FBff', label='Expected ±2σ')
+                     alpha=al, color='#ffcc00', label='Expected 95%')
     ax.fill_between(masses, exp_m1_limits, exp_p1_limits, 
-                     alpha=al, color='#FFDF7Fff', label='Expected ±1σ')
+                     alpha=al, color='#00953e', label='Expected 68%')
     
     
     # Plot expected and observed limits
